@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>BlockVault</title>
+    <script src="https://cdn.jsdelivr.net/npm/ethers@6.6.2/dist/ethers.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f3f4f6;
+            margin: 0;
+            padding: 0;
+            color: #333;
+        }
+
+        header {
+            background: #111827;
+            color: white;
+            padding: 1rem;
+            text-align: center;
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 2rem;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            background: #1f2937;
+            padding: 1rem;
+        }
+
+        .controls button {
+            padding: 0.6rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            background-color: #2563eb;
+            color: white;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .controls button:hover {
+            background-color: #1d4ed8;
+        }
+
+        main {
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 2rem;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        h2 {
+            color: #1e3a8a;
+        }
+
+        form {
+            margin-top: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        input[type="file"] {
+            padding: 0.6rem;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 1rem;
+        }
+
+        button[type="submit"] {
+            background-color: #10b981;
+        }
+
+        button[type="submit"]:hover {
+            background-color: #059669;
+        }
+
+        #walletAddress {
+            margin-top: 1rem;
+            font-weight: bold;
+            color: #065f46;
+        }
+
+        #result,
+        #output {
+            margin-top: 1rem;
+            background-color: #e0f2fe;
+            padding: 1rem;
+            border-left: 4px solid #0284c7;
+            border-radius: 8px;
+        }
+
+        a {
+            color: #2563eb;
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        .section {
+            display: none;
+        }
+
+        .active {
+            display: block;
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <h1>🧱 BlockVault</h1>
+        <button id="connectButton" style="
+    padding: 8px 16px;
+    margin-top: 10px;
+    background-color: #10b981;
+    border: none;
+    border-radius: 6px;
+    color: white;
+    font-size: 1rem;
+    cursor: pointer;
+">
+            🔗 Connect Wallet
+        </button>
+        <div id="walletAddress"></div>
+    </header>
+
+    <div class="controls">
+        <button onclick="showSection('upload')">📤 Upload Document</button>
+        <button onclick="showSection('retrieve')">🔍 Retrieve Document</button>
+    </div>
+
+    <main>
+        <!-- Upload Section -->
+        <section id="uploadSection" class="section active">
+            <h2>Upload Document</h2>
+            <form id="uploadForm">
+                <input type="text" name="title" placeholder="Title" required />
+                <input type="text" name="description" placeholder="Description" required />
+                <input type="file" name="document" required />
+                <button type="submit">Upload</button>
+            </form>
+            <div id="result"></div>
+        </section>
+
+        <!-- Retrieve Section -->
+        <section id="retrieveSection" class="section">
+            <h2>Retrieve Document</h2>
+            <form id="retrieveForm">
+                <input type="text" name="ipfsHash" placeholder="Enter IPFS Hash" required />
+                <button type="submit">Fetch Document</button>
+            </form>
+            <div id="output"></div>
+        </section>
+    </main>
+
+    <script>
+        let provider, signer, contract;
+
+        const CONTRACT_ADDRESS = "0x5fbdb2d56cdae59174d9d44ca8992a9242998b8a"; // Replace with your contract address AFTER deployment
+        const CONTRACT_ABI = [
+            {
+                "anonymous": false,
+                "inputs": [
+                    {
+                        "indexed": true,
+                        "internalType": "address",
+                        "name": "user",
+                        "type": "address"
+                    },
+                    {
+                        "indexed": false,
+                        "internalType": "string",
+                        "name": "ipfsHash",
+                        "type": "string"
+                    },
+                    {
+                        "indexed": false,
+                        "internalType": "string",
+                        "name": "fileName",
+                        "type": "string"
+                    },
+                    {
+                        "indexed": false,
+                        "internalType": "uint256",
+                        "name": "timestamp",
+                        "type": "uint256"
+                    }
+                ],
+                "name": "DocumentStored",
+                "type": "event"
+            },
+            {
+                "inputs": [
+                    {
+                        "internalType": "address",
+                        "name": "user",
+                        "type": "address"
+                    }
+                ],
+                "name": "getDocuments",
+                "outputs": [
+                    {
+                        "components": [
+                            {
+                                "internalType": "string",
+                                "name": "ipfsHash",
+                                "type": "string"
+                            },
+                            {
+                                "internalType": "string",
+                                "name": "fileName",
+                                "type": "string"
+                            },
+                            {
+                                "internalType": "uint256",
+                                "name": "timestamp",
+                                "type": "uint256"
+                            }
+                        ],
+                        "internalType": "struct BlockVault.Document[]",
+                        "name": "",
+                        "type": "tuple[]"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [
+                    {
+                        "internalType": "string",
+                        "name": "ipfsHash",
+                        "type": "string"
+                    },
+                    {
+                        "internalType": "string",
+                        "name": "fileName",
+                        "type": "string"
+                    }
+                ],
+                "name": "storeDocument",
+                "outputs": [],
+                "stateMutability": "payable",
+                "type": "function"
+            }
+        ]; // Use your ABI
+
+        function showSection(section) {
+            document.getElementById('uploadSection').classList.remove('active');
+            document.getElementById('retrieveSection').classList.remove('active');
+            document.getElementById(section + 'Section').classList.add('active');
+        }
+
+        async function connectWallet() {
+            if (!window.ethereum) {
+                alert("Please install MetaMask!");
+                return;
+            }
+            try {
+                await window.ethereum.request({ method: 'eth_requestAccounts' });
+                provider = new ethers.BrowserProvider(window.ethereum);
+                signer = await provider.getSigner();
+                const address = await signer.getAddress();
+
+                document.getElementById('walletAddress').innerText = "🟢 Connected: " + address;
+                contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
+            } catch (err) {
+                console.error("Wallet connection failed:", err);
+                document.getElementById('walletAddress').innerText = "❌ Connection failed.";
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const connectButton = document.getElementById('connectButton');
+            connectButton.addEventListener('click', connectWallet);
+
+            // Check for window.ethereum on load, and try to connect
+            if (typeof window.ethereum !== 'undefined') {
+                console.log('MetaMask is installed!');
+                connectWallet(); // Attempt connection on page load
+            } else {
+                console.log('MetaMask is NOT installed!');
+                // Optionally display a message to the user
+            }
+
+        });
+
+        document.getElementById('uploadForm').onsubmit = async function (e) {
+            e.preventDefault();
+            const file = e.target.document.files[0];
+            const title = e.target.title.value;
+            const description = e.target.description.value;
+
+            const formData = new FormData();
+            formData.append('document', file);
+            formData.append('title', title);
+            formData.append('description', description);
+
+            try {
+                const res = await fetch('http://localhost:5000/upload', {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                const data = await res.json();
+                if (data.success && contract) {
+                    const tx = await contract.storeDocument(data.hash, file.name, {
+                        value: ethers.parseEther("0.01"),
+                        gasLimit: 300000
+                    });
+                    await tx.wait();
+                    document.getElementById('result').innerHTML = `
+          ✅ Uploaded! IPFS:
+          <a href="https://ipfs.io/ipfs/${data.hash}" target="_blank">${data.hash}</a>`;
+                } else {
+                    document.getElementById('result').innerText = "Upload failed: " + data.error;
+                }
+            } catch (err) {
+                console.error(err);
+                document.getElementById('result').innerText = "Error uploading: " + err.message;
+            }
+        };
+
+        document.getElementById('retrieveForm').onsubmit = async function (e) {
+            e.preventDefault();
+            const ipfsHash = e.target.ipfsHash.value; // Get IPFS Hash from the input
+            console.log("Attempting to retreive IPFS hash:", ipfsHash);
+
+            if (!ipfsHash) {
+              document.getElementById('output').innerText = "❌ Please enter an IPFS Hash.";
+              return;
+            }
+
+            try {
+                // Removed: index-based retrieval from the contract
+                // We are now assuming you want to VIEW the file directly, not retrieve metadata
+
+                const ipfsLink = `https://ipfs.io/ipfs/${ipfsHash}`;
+
+                document.getElementById('output').innerHTML = `
+                    <p><strong>IPFS Hash:</strong> ${ipfsHash}</p>
+                    <p><a href="${ipfsLink}" target="_blank">View on IPFS</a></p>
+                    <p><a href="${ipfsLink}" target="_blank" download>Download Document</a></p>`;
+
+            } catch (err) {
+                console.error(err);
+                document.getElementById('output').innerText = "Error retrieving document: " + err.message;
+            }
+        };
+    </script>
+</body>
+
+</html>
