@@ -3,167 +3,623 @@
 
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BlockVault</title>
-    <script src="https://cdn.jsdelivr.net/npm/ethers@6.6.2/dist/ethers.min.js"></script>
+    <!-- More reliable ethers.js loading strategy -->
+    <script type="text/javascript">
+        // Function to load ethers.js from various CDNs with fallbacks
+        function loadEthers() {
+            const cdnSources = [
+                "https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js",
+                "https://unpkg.com/ethers@5.7.2/dist/ethers.umd.min.js",
+                "https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"
+            ];
+
+            function tryLoadScript(index) {
+                if (index >= cdnSources.length) {
+                    console.error("Failed to load ethers.js from all sources");
+                    document.getElementById('walletAddress').innerText = "❌ Failed to load Ethereum library";
+                    return;
+                }
+
+                const script = document.createElement('script');
+                script.src = cdnSources[index];
+                script.type = 'text/javascript';
+                script.onload = function() {
+                    console.log("Ethers.js loaded successfully from: " + cdnSources[index]);
+                };
+                script.onerror = function() {
+                    console.warn("Failed to load ethers.js from: " + cdnSources[index]);
+                    tryLoadScript(index + 1);
+                };
+                document.head.appendChild(script);
+            }
+
+            tryLoadScript(0);
+        }
+
+        // Load ethers.js as soon as possible
+        loadEthers();
+    </script>
+    <!-- Animation library -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: #f3f4f6;
+        :root {
+            --primary-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            --secondary-gradient: linear-gradient(135deg, #10b981 0%, #3b82f6 100%);
+            --tertiary-gradient: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%);
+            --dark-gradient: linear-gradient(135deg, #111827 0%, #1f2937 100%);
+            --light-gradient: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
+            
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --success: #10b981;
+            --success-dark: #059669;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --dark: #111827;
+            --light: #f9fafb;
+            --gray: #6b7280;
+            
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            
+            --border-radius-sm: 0.25rem;
+            --border-radius: 0.5rem;
+            --border-radius-md: 0.75rem;
+            --border-radius-lg: 1rem;
+            
+            --transition-fast: 0.15s ease;
+            --transition: 0.3s ease;
+            --transition-slow: 0.5s ease;
+        }
+        
+        * {
+            box-sizing: border-box;
             margin: 0;
             padding: 0;
-            color: #333;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--light-gradient);
+            color: #374151;
+            line-height: 1.6;
+            min-height: 100vh;
+            overflow-x: hidden;
         }
 
         header {
-            background: #111827;
+            background: var(--dark-gradient);
             color: white;
-            padding: 1rem;
+            padding: 1.5rem;
             text-align: center;
+            position: relative;
+            overflow: hidden;
+            box-shadow: var(--shadow-md);
+        }
+        
+        header::before {
+            content: '';
+            position: absolute;
+            top: -50px;
+            left: -50px;
+            right: -50px;
+            bottom: -50px;
+            background: radial-gradient(circle at center, rgba(99, 102, 241, 0.15) 0%, transparent 70%);
+            z-index: 0;
         }
 
         header h1 {
             margin: 0;
-            font-size: 2rem;
+            font-size: 2.5rem;
+            font-weight: 700;
+            position: relative;
+            z-index: 1;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        header h1 span {
+            background: var(--secondary-gradient);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .wallet-section {
+            position: relative;
+            z-index: 1;
+            margin-top: 1rem;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: var(--border-radius);
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all var(--transition);
+            text-align: center;
+            text-decoration: none;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .btn-primary {
+            background: var(--primary-gradient);
+            color: white;
+        }
+
+        .btn-success {
+            background: var(--secondary-gradient);
+            color: white;
+        }
+
+        .btn-danger {
+            background: var(--tertiary-gradient);
+            color: white;
+        }
+        
+        #connectButton {
+            background: var(--secondary-gradient);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: var(--border-radius);
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all var(--transition);
+            box-shadow: var(--shadow);
+            position: relative;
+            z-index: 1;
+            overflow: hidden;
+        }
+        
+        #connectButton::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: all 0.6s;
+            z-index: -1;
+        }
+        
+        #connectButton:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-md);
+        }
+        
+        #connectButton:hover::before {
+            left: 100%;
+        }
+
+        #walletAddress {
+            margin-top: 1rem;
+            font-weight: 500;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: var(--border-radius);
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(5px);
+            display: inline-block;
+            transition: all var(--transition);
         }
 
         .controls {
             display: flex;
             justify-content: center;
             gap: 1rem;
-            background: #1f2937;
+            background: var(--dark);
             padding: 1rem;
+            position: relative;
+            z-index: 2;
+            box-shadow: var(--shadow);
         }
 
         .controls button {
-            padding: 0.6rem 1.5rem;
+            padding: 0.75rem 1.5rem;
             border: none;
-            border-radius: 8px;
-            background-color: #2563eb;
+            border-radius: var(--border-radius);
+            background-color: rgba(255, 255, 255, 0.1);
             color: white;
             font-size: 1rem;
+            font-weight: 500;
             cursor: pointer;
-            transition: background 0.3s ease;
+            transition: all var(--transition);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .controls button::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 0;
+            height: 3px;
+            background: var(--primary-gradient);
+            transition: width var(--transition);
         }
 
         .controls button:hover {
-            background-color: #1d4ed8;
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+        
+        .controls button:hover::after {
+            width: 100%;
+        }
+        
+        .controls button.active {
+            background-color: var(--primary);
+            box-shadow: var(--shadow);
         }
 
         main {
             max-width: 800px;
             margin: 2rem auto;
-            padding: 2rem;
+            padding: 0;
+            position: relative;
+            z-index: 1;
+        }
+
+        .card {
             background: white;
-            border-radius: 12px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            border-radius: var(--border-radius-lg);
+            box-shadow: var(--shadow-md);
+            overflow: hidden;
+            transition: all var(--transition);
+            transform: translateY(0);
+            margin-bottom: 2rem;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .card-header {
+            padding: 1.5rem;
+            background: var(--light-gradient);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+        }
+        
+        .card-body {
+            padding: 1.5rem;
         }
 
         h2 {
-            color: #1e3a8a;
+            color: var(--dark);
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            position: relative;
+            display: inline-block;
+        }
+        
+        h2::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 0;
+            width: 50px;
+            height: 3px;
+            background: var(--primary-gradient);
+            border-radius: 10px;
         }
 
         form {
-            margin-top: 1rem;
             display: flex;
             flex-direction: column;
-            gap: 0.8rem;
+            gap: 1rem;
+        }
+        
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        
+        .form-group label {
+            font-weight: 500;
+            color: var(--gray);
+            font-size: 0.875rem;
         }
 
         input[type="text"],
-        input[type="number"],
-        input[type="file"] {
-            padding: 0.6rem;
-            border: 1px solid #ccc;
-            border-radius: 6px;
+        input[type="number"] {
+            padding: 0.75rem 1rem;
+            border: 1px solid #e5e7eb;
+            border-radius: var(--border-radius);
             font-size: 1rem;
+            transition: all var(--transition-fast);
+            box-shadow: var(--shadow-sm);
+            width: 100%;
         }
 
+        input[type="text"]:focus,
+        input[type="number"]:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+        }
+        
+        .file-input-wrapper {
+            position: relative;
+            width: 100%;
+            margin-bottom: 1rem;
+        }
+        
+        .file-input-label {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+            border: 2px dashed #e5e7eb;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: all var(--transition);
+            background: #f9fafb;
+        }
+        
+        .file-input-label:hover {
+            border-color: var(--primary);
+            background: #f3f4f6;
+        }
+        
+        .file-input-text {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .file-input-icon {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+            color: var(--gray);
+        }
+        
+        input[type="file"] {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+        }
+        
         button[type="submit"] {
-            background-color: #10b981;
+            background: var(--secondary-gradient);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: var(--border-radius);
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all var(--transition);
+            box-shadow: var(--shadow);
+            position: relative;
+            overflow: hidden;
         }
-
+        
+        button[type="submit"]::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: all 0.6s;
+            z-index: 1;
+        }
+        
         button[type="submit"]:hover {
-            background-color: #059669;
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
         }
-
-        #walletAddress {
-            margin-top: 1rem;
-            font-weight: bold;
-            color: #065f46;
+        
+        button[type="submit"]:hover::before {
+            left: 100%;
         }
 
         #result,
         #output {
-            margin-top: 1rem;
-            background-color: #e0f2fe;
-            padding: 1rem;
-            border-left: 4px solid #0284c7;
-            border-radius: 8px;
-        }
-
-        a {
-            color: #2563eb;
-            text-decoration: none;
-        }
-
-        a:hover {
-            text-decoration: underline;
+            margin-top: 1.5rem;
+            border-radius: var(--border-radius);
+            overflow: hidden;
+            transition: all var(--transition);
         }
 
         .section {
             display: none;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity var(--transition), transform var(--transition);
         }
 
-        .active {
+        .section.active {
             display: block;
+            opacity: 1;
+            transform: translateY(0);
+            animation: fadeIn 0.5s ease forwards;
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .success-message {
+            background-color: #d1fae5;
+            border-left: 4px solid #10b981;
+            padding: 16px;
+            border-radius: 8px;
+            margin-top: 16px;
+            transition: all var(--transition);
+            animation: slideIn 0.5s ease forwards;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        
+        .error-message {
+            background-color: #fee2e2;
+            border-left: 4px solid #ef4444;
+            padding: 16px;
+            border-radius: 8px;
+            margin-top: 16px;
+            color: #b91c1c;
+            transition: all var(--transition);
+            animation: shake 0.5s ease forwards;
+        }
+        
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+            20%, 40%, 60%, 80% { transform: translateX(5px); }
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Responsive styles */
+        @media (max-width: 768px) {
+            main {
+                padding: 1rem;
+                margin: 1rem;
+            }
+            
+            .controls {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+            
+            .controls button {
+                width: 100%;
+            }
         }
     </style>
 </head>
 
 <body>
-    <header>
-        <h1>🧱 BlockVault</h1>
-        <button id="connectButton" style="
-    padding: 8px 16px;
-    margin-top: 10px;
-    background-color: #10b981;
-    border: none;
-    border-radius: 6px;
-    color: white;
-    font-size: 1rem;
-    cursor: pointer;
-">
-            🔗 Connect Wallet
-        </button>
-        <div id="walletAddress"></div>
+    <header class="animate__animated animate__fadeIn">
+        <h1>🧱 Block<span>Vault</span></h1>
+        <div class="wallet-section">
+            <button id="connectButton" class="btn">
+                <span id="connectButtonText">🔗 Connect Wallet</span>
+                <span class="loading" style="display: none;"></span>
+            </button>
+            <div id="walletAddress"></div>
+        </div>
     </header>
 
-    <div class="controls">
-        <button onclick="showSection('upload')">📤 Upload Document</button>
-        <button onclick="showSection('retrieve')">🔍 Retrieve Document</button>
+    <div class="controls animate__animated animate__fadeInUp">
+        <button id="uploadBtn" class="active" onclick="showSection('upload')">📤 Upload Document</button>
+        <button id="retrieveBtn" onclick="showSection('retrieve')">🔍 Retrieve Document</button>
     </div>
 
     <main>
         <!-- Upload Section -->
-        <section id="uploadSection" class="section active">
-            <h2>Upload Document</h2>
-            <form id="uploadForm">
-                <input type="text" name="title" placeholder="Title" required />
-                <input type="text" name="description" placeholder="Description" required />
-                <input type="file" name="document" required />
-                <button type="submit">Upload</button>
-            </form>
-            <div id="result"></div>
+        <section id="uploadSection" class="section active card animate__animated animate__fadeIn">
+            <div class="card-header">
+                <h2>Upload Document</h2>
+            </div>
+            <div class="card-body">
+                <form id="uploadForm">
+                    <div class="form-group">
+                        <label for="title">Title</label>
+                        <input type="text" id="title" name="title" placeholder="Document Title" required />
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="description">Description</label>
+                        <input type="text" id="description" name="description" placeholder="Short description of the document" required />
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Document File</label>
+                        <div class="file-input-wrapper">
+                            <label class="file-input-label">
+                                <div class="file-input-text">
+                                    <div class="file-input-icon">📄</div>
+                                    <div id="file-name">Choose a file or drag it here</div>
+                                </div>
+                                <input type="file" name="document" id="document" required />
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-success">
+                        <span>Upload to Blockchain</span>
+                    </button>
+                </form>
+                <div id="result"></div>
+            </div>
         </section>
 
         <!-- Retrieve Section -->
-        <section id="retrieveSection" class="section">
-            <h2>Retrieve Document</h2>
-            <form id="retrieveForm">
-                <input type="text" name="ipfsHash" placeholder="Enter IPFS Hash" required />
-                <button type="submit">Fetch Document</button>
-            </form>
-            <div id="output"></div>
+        <section id="retrieveSection" class="section card animate__animated animate__fadeIn">
+            <div class="card-header">
+                <h2>Retrieve Document</h2>
+            </div>
+            <div class="card-body">
+                <form id="retrieveForm">
+                    <div class="form-group">
+                        <label for="ipfsHash">IPFS Hash</label>
+                        <input type="text" id="ipfsHash" name="ipfsHash" placeholder="Enter IPFS Hash to retrieve document" required />
+                    </div>
+                    <button type="submit" class="btn btn-primary">Fetch Document</button>
+                </form>
+                <div id="output"></div>
+            </div>
         </section>
     </main>
 
@@ -259,51 +715,344 @@
             }
         ]; // Use your ABI
 
+        // Make sure all DOM content is loaded before attaching event handlers
+        document.addEventListener('DOMContentLoaded', function() {
+            // Prevent form submissions from reloading the page
+            const uploadForm = document.getElementById('uploadForm');
+            const retrieveForm = document.getElementById('retrieveForm');
+            
+            if (uploadForm) {
+                uploadForm.addEventListener('submit', handleUploadSubmit);
+            }
+            
+            if (retrieveForm) {
+                retrieveForm.addEventListener('submit', handleRetrieveSubmit);
+            }
+            
+            // Rest of the DOMContentLoaded setup...
+            const connectButton = document.getElementById('connectButton');
+            const fileInput = document.getElementById('document');
+            const fileNameDisplay = document.getElementById('file-name');
+            
+            // File input handling
+            if (fileInput) {
+                fileInput.addEventListener('change', function(e) {
+                    if (e.target.files.length > 0) {
+                        fileNameDisplay.textContent = e.target.files[0].name;
+                        e.target.closest('.file-input-label').classList.add('file-selected');
+                    } else {
+                        fileNameDisplay.textContent = 'Choose a file or drag it here';
+                        e.target.closest('.file-input-label').classList.remove('file-selected');
+                    }
+                });
+            }
+            
+            // Drag and drop handling
+            const dropArea = document.querySelector('.file-input-label');
+            if (dropArea) {
+                ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                    dropArea.addEventListener(eventName, preventDefaults, false);
+                });
+                
+                function preventDefaults(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+                
+                ['dragenter', 'dragover'].forEach(eventName => {
+                    dropArea.addEventListener(eventName, highlight, false);
+                });
+                
+                ['dragleave', 'drop'].forEach(eventName => {
+                    dropArea.addEventListener(eventName, unhighlight, false);
+                });
+                
+                function highlight() {
+                    dropArea.classList.add('highlight');
+                }
+                
+                function unhighlight() {
+                    dropArea.classList.remove('highlight');
+                }
+                
+                dropArea.addEventListener('drop', handleDrop, false);
+                
+                function handleDrop(e) {
+                    const dt = e.dataTransfer;
+                    const files = dt.files;
+                    fileInput.files = files;
+                    
+                    if (files.length > 0) {
+                        fileNameDisplay.textContent = files[0].name;
+                        dropArea.classList.add('file-selected');
+                    }
+                }
+            }
+            
+            // More robust MetaMask detection
+            function checkForMetaMask() {
+                console.log("Checking for MetaMask...");
+                console.log("window.ethereum:", window.ethereum);
+                console.log("window.web3:", window.web3);
+                
+                // Multiple detection methods
+                const hasEthereum = typeof window.ethereum !== 'undefined';
+                const hasWeb3 = typeof window.web3 !== 'undefined';
+                const hasMetaMaskProvider = window.ethereum && window.ethereum.isMetaMask;
+                
+                console.log("Detection results - hasEthereum:", hasEthereum, "hasWeb3:", hasWeb3, "isMetaMask:", hasMetaMaskProvider);
+                
+                return hasEthereum || hasWeb3 || hasMetaMaskProvider;
+            }
+            
+            // Force MetaMask connection regardless of detection
+            function forceConnectMetaMask() {
+                console.log("Forcing MetaMask connection attempt...");
+                // Set up UI for connection attempt
+                document.getElementById('walletAddress').innerText = "🔄 Attempting connection...";
+                
+                // Try connection anyway
+                connectWallet();
+            }
+            
+            // Create the UI based on detection
+            if (checkForMetaMask()) {
+                console.log('MetaMask appears to be installed!');
+                connectButtonText.innerText = "🔗 Connect MetaMask";
+                connectButton.onclick = connectWallet;
+            } else {
+                console.log('MetaMask detection failed - offering options');
+                connectButtonText.innerText = "🔗 Try Connect Anyway";
+                connectButton.onclick = forceConnectMetaMask;
+                
+                // Add a secondary button for installation
+                const installButton = document.createElement('button');
+                installButton.innerText = "⚠️ Install MetaMask";
+                installButton.className = "btn btn-danger";
+                installButton.style.marginLeft = "10px";
+                installButton.onclick = () => window.open('https://metamask.io/download/', '_blank');
+                connectButton.parentNode.insertBefore(installButton, connectButton.nextSibling);
+            }
+
+            // Add wallet event listeners
+            if (window.ethereum) {
+                window.ethereum.on('accountsChanged', async (newAccounts) => {
+                    console.log("Account changed:", newAccounts);
+                    if (newAccounts.length > 0) {
+                        connectWallet(); // Reconnect with the new account
+                    } else {
+                        document.getElementById('walletAddress').innerText = "❌ Disconnected";
+                        provider = null;
+                        signer = null;
+                        contract = null;
+                    }
+                });
+
+                window.ethereum.on('chainChanged', (_chainId) => {
+                    console.log("Chain changed:", _chainId);
+                    window.location.reload(); // Reload the page on chain change
+                });
+            }
+        });
+
         function showSection(section) {
-            document.getElementById('uploadSection').classList.remove('active');
-            document.getElementById('retrieveSection').classList.remove('active');
-            document.getElementById(section + 'Section').classList.add('active');
+            // Remove active class from all buttons
+            document.getElementById('uploadBtn').classList.remove('active');
+            document.getElementById('retrieveBtn').classList.remove('active');
+            
+            // Add active class to clicked button
+            document.getElementById(section + 'Btn').classList.add('active');
+            
+            // Get all sections and hide them with animation
+            const sections = document.querySelectorAll('.section');
+            sections.forEach(s => {
+                s.classList.remove('active');
+            });
+            
+            // Show the selected section with animation
+            const targetSection = document.getElementById(section + 'Section');
+            void targetSection.offsetWidth; // Trigger reflow for animation reset
+            targetSection.classList.add('active');
         }
 
         async function connectWallet() {
-            if (!window.ethereum) {
-                alert("Please install MetaMask!");
+            // Show loading state
+            const connectButton = document.getElementById('connectButton');
+            const connectButtonText = document.getElementById('connectButtonText');
+            const loadingSpinner = connectButton.querySelector('.loading');
+            
+            connectButtonText.style.opacity = '0.5';
+            loadingSpinner.style.display = 'inline-block';
+            
+            // Add check to verify ethers is loaded and wait if needed
+            if (typeof ethers === 'undefined') {
+                console.log("Ethers.js not loaded yet, waiting...");
+                document.getElementById('walletAddress').innerText = "⏳ Loading Ethereum library...";
+                
+                // Wait for ethers to load (retry up to 5 times)
+                for (let i = 0; i < 5; i++) {
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    if (typeof ethers !== 'undefined') {
+                        console.log("Ethers.js loaded after waiting");
+                        break;
+                    }
+                    if (i === 4) {
+                        const errorMsg = "Ethers.js failed to load after waiting";
+                        console.error(errorMsg);
+                        document.getElementById('walletAddress').innerText = "❌ " + errorMsg;
+                        
+                        // Reset button state
+                        connectButtonText.style.opacity = '1';
+                        loadingSpinner.style.display = 'none';
+                        return;
+                    }
+                }
+            }
+            
+            console.log("Ethers version loaded:", ethers.version || "Unknown");
+            
+            if (typeof window.ethereum === 'undefined') {
+                alert("Please install MetaMask! Visit https://metamask.io/download/");
+                document.getElementById('walletAddress').innerText = "❌ MetaMask not found";
+                
+                // Reset button state
+                connectButtonText.style.opacity = '1';
+                loadingSpinner.style.display = 'none';
                 return;
             }
+            
             try {
-                await window.ethereum.request({ method: 'eth_requestAccounts' });
-                provider = new ethers.BrowserProvider(window.ethereum);
-                signer = await provider.getSigner();
-                const address = await signer.getAddress();
+                console.log("Starting wallet connection process...");
+                document.getElementById('walletAddress').innerText = "🔄 Connecting...";
+                
+                // Step 1: Request accounts - log details to help debug
+                console.log("Requesting accounts from MetaMask...");
+                console.log("window.ethereum state:", window.ethereum);
+                let accounts;
+                try {
+                    accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                    console.log("Accounts received:", accounts);
+                } catch (accountError) {
+                    console.error("Failed to get accounts:", accountError);
+                    document.getElementById('walletAddress').innerText = "❌ Account access denied: " + accountError.message;
+                    
+                    // Reset button state
+                    connectButtonText.style.opacity = '1';
+                    loadingSpinner.style.display = 'none';
+                    return;
+                }
+                
+                if (!accounts || accounts.length === 0) {
+                    document.getElementById('walletAddress').innerText = "❌ No accounts connected";
+                    
+                    // Reset button state
+                    connectButtonText.style.opacity = '1';
+                    loadingSpinner.style.display = 'none';
+                    return;
+                }
+                
+                // Step 2: Create provider - using ethers v5 style
+                console.log("Creating ethers provider...");
+                try {
+                    // For ethers v5
+                    provider = new ethers.providers.Web3Provider(window.ethereum);
+                    console.log("Provider created:", provider);
+                } catch (providerError) {
+                    console.error("Provider creation failed:", providerError);
+                    document.getElementById('walletAddress').innerText = "❌ Provider error: " + providerError.message;
+                    
+                    // Reset button state
+                    connectButtonText.style.opacity = '1';
+                    loadingSpinner.style.display = 'none';
+                    return;
+                }
+                
+                // Step 3: Get signer
+                console.log("Getting signer...");
+                try {
+                    signer = provider.getSigner();
+                    console.log("Signer created:", signer);
+                } catch (signerError) {
+                    console.error("Signer creation failed:", signerError);
+                    document.getElementById('walletAddress').innerText = "❌ Signer error: " + signerError.message;
+                    
+                    // Reset button state
+                    connectButtonText.style.opacity = '1';
+                    loadingSpinner.style.display = 'none';
+                    return;
+                }
+                
+                // Step 4: Get address
+                console.log("Getting address...");
+                let address;
+                try {
+                    address = await signer.getAddress();
+                    console.log("Address retrieved:", address);
+                } catch (addressError) {
+                    console.error("Address retrieval failed:", addressError);
+                    document.getElementById('walletAddress').innerText = "❌ Address error: " + addressError.message;
+                    
+                    // Reset button state
+                    connectButtonText.style.opacity = '1';
+                    loadingSpinner.style.display = 'none';
+                    return;
+                }
 
-                document.getElementById('walletAddress').innerText = "🟢 Connected: " + address;
-                contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
+                // Step 5: Create contract instance
+                console.log("Creating contract instance...");
+                try {
+                    contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
+                    console.log("Contract created:", contract);
+                } catch (contractError) {
+                    console.error("Contract creation failed:", contractError);
+                    // We can still proceed without contract for now, just log the error
+                }
+
+                // Format the address for display (truncate middle)
+                const formattedAddress = `${address.substring(0, 6)}...${address.substring(address.length - 4)}`;
+                document.getElementById('walletAddress').innerText = "🟢 Connected: " + formattedAddress;
+                
+                // Update button appearance for connected state
+                connectButton.style.background = 'var(--success-gradient)';
+                connectButtonText.innerText = '✅ Connected';
+                
+                // Reset loading state
+                connectButtonText.style.opacity = '1';
+                loadingSpinner.style.display = 'none';
+                
+                console.log("Successfully connected to MetaMask");
+                return { provider, signer, address };
             } catch (err) {
-                console.error("Wallet connection failed:", err);
-                document.getElementById('walletAddress').innerText = "❌ Connection failed.";
+                console.error("Wallet connection failed - main try/catch:", err);
+                console.error("Error name:", err.name);
+                console.error("Error message:", err.message);
+                console.error("Error stack:", err.stack);
+                document.getElementById('walletAddress').innerText = "❌ Connection failed: " + err.message;
+                
+                // Reset button state
+                connectButtonText.style.opacity = '1';
+                loadingSpinner.style.display = 'none';
             }
         }
 
-        document.addEventListener('DOMContentLoaded', function() {
-            const connectButton = document.getElementById('connectButton');
-            connectButton.addEventListener('click', connectWallet);
-
-            // Check for window.ethereum on load, and try to connect
-            if (typeof window.ethereum !== 'undefined') {
-                console.log('MetaMask is installed!');
-                connectWallet(); // Attempt connection on page load
-            } else {
-                console.log('MetaMask is NOT installed!');
-                // Optionally display a message to the user
-            }
-
-        });
-
-        document.getElementById('uploadForm').onsubmit = async function (e) {
+        // Handler for upload form submission
+        async function handleUploadSubmit(e) {
+            // Explicitly prevent the default form submission
             e.preventDefault();
-            const file = e.target.document.files[0];
-            const title = e.target.title.value;
-            const description = e.target.description.value;
+            console.log("Upload form submitted, preventing default action");
+            
+            const form = e.target;
+            const file = form.document.files[0];
+            const title = form.title.value;
+            const description = form.description.value;
+
+            if (!file) {
+                document.getElementById('result').innerHTML = `
+                <div class="error-message animate__animated animate__fadeIn">
+                    <p>❌ Please select a file to upload</p>
+                </div>`;
+                return;
+            }
 
             const formData = new FormData();
             formData.append('document', file);
@@ -311,6 +1060,12 @@
             formData.append('description', description);
 
             try {
+                // Show loading message
+                document.getElementById('result').innerHTML = `
+                    <div class="animate__animated animate__fadeIn" style="background-color: #e0f2fe; border-left: 4px solid #0284c7; padding: 16px; border-radius: 8px; margin-top: 16px;">
+                        <p><span class="loading" style="display: inline-block; vertical-align: middle; margin-right: 10px;"></span> Uploading to IPFS and blockchain...</p>
+                    </div>`;
+                
                 const res = await fetch('http://localhost:5000/upload', {
                     method: 'POST',
                     body: formData,
@@ -318,49 +1073,164 @@
 
                 const data = await res.json();
                 if (data.success && contract) {
+                    // Transaction amount (hardcoded in contract call)
+                    const txAmount = "0.01";
+                    
+                    // Execute the transaction
                     const tx = await contract.storeDocument(data.hash, file.name, {
-                        value: ethers.parseEther("0.01"),
+                        value: ethers.utils.parseEther(txAmount),
                         gasLimit: 300000
                     });
-                    await tx.wait();
+                    
+                    // Update progress
                     document.getElementById('result').innerHTML = `
-          ✅ Uploaded! IPFS:
-          <a href="https://ipfs.io/ipfs/${data.hash}" target="_blank">${data.hash}</a>`;
+                        <div class="animate__animated animate__fadeIn" style="background-color: #e0f2fe; border-left: 4px solid #0284c7; padding: 16px; border-radius: 8px; margin-top: 16px;">
+                            <p><span class="loading" style="display: inline-block; vertical-align: middle; margin-right: 10px;"></span> Transaction submitted, waiting for confirmation...</p>
+                            <p>Transaction hash: <a href="https://etherscan.io/tx/${tx.hash}" target="_blank">${tx.hash.substring(0, 10)}...${tx.hash.substring(tx.hash.length - 8)}</a></p>
+                        </div>`;
+                    
+                    // Wait for transaction to be mined
+                    const receipt = await tx.wait();
+                    
+                    // Calculate actual gas used in ETH
+                    const gasUsed = receipt.gasUsed;
+                    const gasPrice = receipt.effectiveGasPrice || tx.gasPrice;
+                    const gasCostWei = gasUsed.mul(gasPrice);
+                    const gasCostEth = ethers.utils.formatEther(gasCostWei);
+                    
+                    // Total transaction cost (gas + contract fee)
+                    const totalCost = (parseFloat(gasCostEth) + parseFloat(txAmount)).toFixed(5);
+                    
+                    // Show success animation
+                    document.getElementById('result').innerHTML = `
+                    <div class="success-message animate__animated animate__fadeIn">
+                        <h3 style="color: #065f46; margin-top: 0;">✅ Upload Successful!</h3>
+                        <p><strong>Transaction Details:</strong></p>
+                        <p>📄 File: ${file.name}</p>
+                        <p>💰 Transaction Cost: ${totalCost} ETH (${txAmount} ETH fee + ${gasCostEth} ETH gas)</p>
+                        <p>🔗 Transaction Hash: <a href="https://etherscan.io/tx/${receipt.transactionHash}" target="_blank">${receipt.transactionHash.substring(0, 10)}...${receipt.transactionHash.substring(receipt.transactionHash.length - 8)}</a></p>
+                        <p><strong>IPFS Details:</strong></p>
+                        <p>📦 IPFS Hash: <span style="font-family: monospace; background: #f3f4f6; padding: 4px 8px; border-radius: 4px;">${data.hash}</span></p>
+                        <p>🔍 Use this hash in the Retrieve Document section to access your file</p>
+                        <div style="display: flex; gap: 10px; margin-top: 15px;">
+                            <a href="https://ipfs.io/ipfs/${data.hash}" target="_blank" class="btn btn-primary" style="flex: 1;">View on IPFS Gateway</a>
+                            <button onclick="copyToClipboard('${data.hash}')" class="btn" style="flex: 1; background: #6b7280; color: white;">Copy Hash</button>
+                        </div>
+                    </div>`;
+                    
+                    // Reset form
+                    form.reset();
+                    document.querySelector('.file-input-label').classList.remove('file-selected');
+                    document.getElementById('file-name').textContent = 'Choose a file or drag it here';
                 } else {
-                    document.getElementById('result').innerText = "Upload failed: " + data.error;
+                    document.getElementById('result').innerHTML = `
+                    <div class="error-message animate__animated animate__fadeIn">
+                        <p>❌ Upload failed: ${data.error || 'Unknown error'}</p>
+                    </div>`;
                 }
             } catch (err) {
                 console.error(err);
-                document.getElementById('result').innerText = "Error uploading: " + err.message;
+                document.getElementById('result').innerHTML = `
+                <div class="error-message animate__animated animate__fadeIn">
+                    <p>❌ Error uploading: ${err.message}</p>
+                </div>`;
             }
-        };
+            
+            // Return false to make absolutely sure the form doesn't submit
+            return false;
+        }
 
-        document.getElementById('retrieveForm').onsubmit = async function (e) {
+        // Handler for retrieve form submission
+        async function handleRetrieveSubmit(e) {
+            // Explicitly prevent the default form submission
             e.preventDefault();
-            const ipfsHash = e.target.ipfsHash.value; // Get IPFS Hash from the input
-            console.log("Attempting to retreive IPFS hash:", ipfsHash);
+            console.log("Retrieve form submitted, preventing default action");
+            
+            const form = e.target;
+            const ipfsHash = form.ipfsHash.value;
+            console.log("Attempting to retrieve IPFS hash:", ipfsHash);
 
             if (!ipfsHash) {
-              document.getElementById('output').innerText = "❌ Please enter an IPFS Hash.";
+              document.getElementById('output').innerHTML = `
+              <div class="error-message animate__animated animate__fadeIn">
+                <p>❌ Please enter an IPFS Hash.</p>
+              </div>`;
               return;
             }
 
             try {
-                // Removed: index-based retrieval from the contract
-                // We are now assuming you want to VIEW the file directly, not retrieve metadata
-
-                const ipfsLink = `https://ipfs.io/ipfs/${ipfsHash}`;
-
+                // Show loading state
                 document.getElementById('output').innerHTML = `
-                    <p><strong>IPFS Hash:</strong> ${ipfsHash}</p>
-                    <p><a href="${ipfsLink}" target="_blank">View on IPFS</a></p>
-                    <p><a href="${ipfsLink}" target="_blank" download>Download Document</a></p>`;
+                <div class="animate__animated animate__fadeIn" style="background-color: #e0f2fe; border-left: 4px solid #0284c7; padding: 16px; border-radius: 8px; margin-top: 16px;">
+                    <p><span class="loading" style="display: inline-block; vertical-align: middle; margin-right: 10px;"></span> Fetching document from IPFS...</p>
+                </div>`;
+                
+                // Fetching from IPFS gateway could take time, so we'll show the UI immediately
+                setTimeout(() => {
+                    const ipfsLink = `https://ipfs.io/ipfs/${ipfsHash}`;
+    
+                    document.getElementById('output').innerHTML = `
+                    <div class="success-message animate__animated animate__fadeIn">
+                        <h3 style="color: #065f46; margin-top: 0;">📄 Document Found</h3>
+                        <p><strong>IPFS Hash:</strong> <span style="font-family: monospace; background: #f3f4f6; padding: 4px 8px; border-radius: 4px;">${ipfsHash}</span></p>
+                        <div style="display: flex; gap: 10px; margin-top: 15px;">
+                            <a href="${ipfsLink}" target="_blank" class="btn btn-primary" style="flex: 1;">View Document</a>
+                            <a href="${ipfsLink}" download class="btn btn-success" style="flex: 1;">Download</a>
+                            <button onclick="copyToClipboard('${ipfsHash}')" class="btn" style="flex: 1; background: #6b7280; color: white;">Copy Hash</button>
+                        </div>
+                    </div>`;
+                }, 1000);
 
             } catch (err) {
                 console.error(err);
-                document.getElementById('output').innerText = "Error retrieving document: " + err.message;
+                document.getElementById('output').innerHTML = `
+                <div class="error-message animate__animated animate__fadeIn">
+                    <p>❌ Error retrieving document: ${err.message}</p>
+                </div>`;
             }
-        };
+            
+            // Return false to make absolutely sure the form doesn't submit
+            return false;
+        }
+        
+        // Utility function to copy text to clipboard
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                // Show a temporary tooltip
+                const tooltip = document.createElement('div');
+                tooltip.textContent = 'Copied!';
+                tooltip.style.position = 'fixed';
+                tooltip.style.top = '50%';
+                tooltip.style.left = '50%';
+                tooltip.style.transform = 'translate(-50%, -50%)';
+                tooltip.style.padding = '10px 20px';
+                tooltip.style.background = 'rgba(0, 0, 0, 0.8)';
+                tooltip.style.color = 'white';
+                tooltip.style.borderRadius = '5px';
+                tooltip.style.zIndex = '9999';
+                tooltip.style.animation = 'fadeInOut 1.5s ease forwards';
+                
+                // Add keyframe animation for the tooltip
+                const style = document.createElement('style');
+                style.textContent = `
+                @keyframes fadeInOut {
+                    0% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+                    20% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+                    80% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+                    100% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+                }`;
+                document.head.appendChild(style);
+                
+                document.body.appendChild(tooltip);
+                
+                // Remove tooltip after animation
+                setTimeout(() => {
+                    document.body.removeChild(tooltip);
+                }, 1500);
+            }).catch(err => {
+                console.error('Failed to copy text: ', err);
+            });
+        }
     </script>
 </body>
 
