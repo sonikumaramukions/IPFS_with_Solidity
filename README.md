@@ -135,6 +135,13 @@ npx hardhat ignition deploy ./ignition/modules/Lock.js  # Deploy contract
 
 ---
 
+
+please make sure you have pinita ipfs key and secret. 
+--> create an .env file and paste your pinita ipfs key and secret like this 
+
+PINATA_API_KEY=xxxxxxxxxxxxxxxxxx  // this should be an alpha numeric character
+PINATA_SECRET_API_KEY=xxxxxxxxxxxxxxxxxxxxx // this should also be a alpha numeric charecter
+
 ## 🙌 Acknowledgments
 
 Thanks to:
