@@ -4,7 +4,8 @@
   "description": "special project",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
   },
   "author": "",
   "license": "ISC",
@@ -30,5 +31,13 @@
   "directories": {
     "test": "test"
   },
-  "keywords": []
+  "keywords": [],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sonikumaramukions/IPFS_with_Solidity.git"
+  },
+  "bugs": {
+    "url": "https://github.com/sonikumaramukions/IPFS_with_Solidity/issues"
+  },
+  "homepage": "https://github.com/sonikumaramukions/IPFS_with_Solidity#readme"
 }
