@@ -10,15 +10,24 @@
         // Function to load ethers.js from various CDNs with fallbacks
         function loadEthers() {
             const cdnSources = [
-                "https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js",
-                "https://unpkg.com/ethers@5.7.2/dist/ethers.umd.min.js",
-                "https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"
+                "https://cdn.jsdelivr.net/npm/ethers@6.13.5/dist/ethers.umd.min.js",
+                "https://unpkg.com/ethers@6.13.5/dist/ethers.umd.min.js",
+                "https://cdnjs.cloudflare.com/ajax/libs/ethers/6.13.5/ethers.umd.min.js"
             ];
 
             function tryLoadScript(index) {
                 if (index >= cdnSources.length) {
                     console.error("Failed to load ethers.js from all sources");
-                    document.getElementById('walletAddress').innerText = "❌ Failed to load Ethereum library";
+                    const walletAddressDiv = document.getElementById('walletAddress');
+                    if (walletAddressDiv) walletAddressDiv.innerText = "❌ Failed to load Ethereum library";
+                    // Disable buttons requiring ethers
+                    const connectButton = document.getElementById('connectButton');
+                    const uploadButton = document.getElementById('uploadButton');
+                    const retrieveButton = document.getElementById('retrieveButton');
+                    if(connectButton) connectButton.disabled = true;
+                    if(uploadButton) uploadButton.disabled = true;
+                    if(retrieveButton) retrieveButton.disabled = true;
+
                     return;
                 }
 
@@ -27,6 +36,8 @@
                 script.type = 'text/javascript';
                 script.onload = function() {
                     console.log("Ethers.js loaded successfully from: " + cdnSources[index]);
+                    // You might want to initialize wallet connection attempt here if needed
+                    // checkAndConnectWallet(); // Example function call
                 };
                 script.onerror = function() {
                     console.warn("Failed to load ethers.js from: " + cdnSources[index]);
@@ -35,7 +46,14 @@
                 document.head.appendChild(script);
             }
 
-            tryLoadScript(0);
+            // Check if ethers is already loaded (e.g., by another script)
+            if (typeof window.ethers === 'undefined') {
+                 tryLoadScript(0);
+            } else {
+                console.log("Ethers.js already loaded.");
+                 // Proceed with initialization if needed
+                 // checkAndConnectWallet(); // Example function call
+            }
         }
 
         // Load ethers.js as soon as possible
@@ -58,24 +76,24 @@
             --dark: #1e293b;
             --light: #f8fafc;
             --gray: #64748b;
-            
+
             --gradient-primary: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
             --gradient-secondary: linear-gradient(135deg, #10b981 0%, #34d399 100%);
             --gradient-accent: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);
             --gradient-dark: linear-gradient(135deg, #1e293b 0%, #334155 100%);
-            
+
             --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
             --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
             --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
             --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
         }
-        
+
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
         }
-        
+
         body {
             font-family: 'Poppins', sans-serif;
             background: var(--light);
@@ -135,14 +153,15 @@
 
         /* Wallet Section */
         .wallet-section {
-            position: fixed;
-            top: 1rem;
-            right: 2rem;
-            z-index: 1001;
+            /* Removed fixed positioning, integrate into navbar */
+            /* position: fixed; */
+            /* top: 1rem; */
+            /* right: 2rem; */
+            /* z-index: 1001; */
             display: flex;
-            flex-direction: column;
-            align-items: flex-end;
-            gap: 0.5rem;
+            /* flex-direction: column; */
+            align-items: center; /* Align items horizontally */
+            gap: 1rem; /* Adjust gap */
         }
 
         #connectButton {
@@ -154,15 +173,20 @@
             font-weight: 500;
             cursor: pointer;
             transition: all 0.3s ease;
-            display: flex;
+            display: inline-flex; /* Changed from flex */
             align-items: center;
             gap: 0.5rem;
             box-shadow: var(--shadow);
+            white-space: nowrap; /* Prevent wrapping */
         }
 
-        #connectButton:hover {
+        #connectButton:hover:not(:disabled) {
             transform: translateY(-2px);
             box-shadow: var(--shadow-md);
+        }
+        #connectButton:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
         }
 
         #connectButton.connected {
@@ -176,12 +200,16 @@
             color: var(--dark);
             font-size: 0.875rem;
             box-shadow: var(--shadow);
+            white-space: nowrap; /* Prevent wrapping */
+            max-width: 200px; /* Limit width */
+            overflow: hidden;
+            text-overflow: ellipsis; /* Add ellipsis for overflow */
         }
 
         /* Main Content */
         .main-content {
-            padding-top: 80px;
-            min-height: calc(100vh - 80px);
+            padding-top: 100px; /* Increased padding for fixed navbar */
+            min-height: calc(100vh - 80px); /* Adjust if footer height changes */
         }
 
         /* Hero Section */
@@ -215,7 +243,19 @@
             background: white;
             border-radius: 1rem;
             box-shadow: var(--shadow-md);
+            /* Initially hide sections other than the first one (or handle via JS) */
+             /* display: none; */ /* Add this if handling visibility purely with JS */
         }
+        /* Add active state for sections if needed */
+        .section.active {
+            display: block;
+             animation: fadeIn 0.5s ease-in-out;
+        }
+         @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
 
         .section h2 {
             color: var(--primary);
@@ -236,19 +276,25 @@
             font-weight: 500;
         }
 
-        .form-group input {
+        .form-group input[type="text"],
+        .form-group input[type="file"] {
             width: 100%;
             padding: 0.75rem 1rem;
             border: 1px solid #e2e8f0;
             border-radius: 0.5rem;
             font-size: 1rem;
             transition: all 0.3s ease;
+            background-color: white; /* Ensure background */
         }
 
-        .form-group input:focus {
+        .form-group input[type="text"]:focus {
             outline: none;
             border-color: var(--primary);
             box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+        .form-group input[type="file"] {
+             padding: 0; /* Reset padding for file input if needed */
+             border: none; /* Reset border for file input if needed */
         }
 
         /* Buttons */
@@ -276,10 +322,15 @@
             color: white;
         }
 
-        .btn:hover {
+        .btn:hover:not(:disabled) {
             transform: translateY(-2px);
             box-shadow: var(--shadow-md);
         }
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
 
         /* File Input */
         .file-input-wrapper {
@@ -288,6 +339,12 @@
             padding: 2rem;
             text-align: center;
             transition: all 0.3s ease;
+            background-color: #f8fafc; /* Lighter background */
+        }
+
+        .file-input-wrapper.highlight { /* Style for dragover */
+             border-color: var(--primary);
+             background: rgba(37, 99, 235, 0.1);
         }
 
         .file-input-wrapper:hover {
@@ -305,7 +362,13 @@
             flex-direction: column;
             align-items: center;
             gap: 0.5rem;
+            color: var(--gray);
         }
+        .file-input-label.file-selected .file-input-text {
+            color: var(--dark); /* Change text color when file selected */
+            font-weight: 500;
+        }
+
 
         .file-input-icon {
             font-size: 2rem;
@@ -318,7 +381,13 @@
             padding: 1.5rem;
             border-radius: 0.5rem;
             background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            word-break: break-word; /* Prevent long strings from overflowing */
         }
+
+         .result div, .output div { /* Target inner divs for animation */
+              animation: fadeIn 0.3s ease-in-out;
+         }
 
         .success-message {
             color: var(--secondary-dark);
@@ -331,15 +400,29 @@
             background: rgba(239, 68, 68, 0.1);
             border: 1px solid rgba(239, 68, 68, 0.2);
         }
+         .info-message { /* Added for loading/info states */
+             color: var(--primary-dark);
+             background: rgba(37, 99, 235, 0.1);
+             border: 1px solid rgba(37, 99, 235, 0.2);
+         }
+
 
         /* Loading Spinner */
         .loading {
+            display: inline-block; /* Make sure it takes space */
             width: 20px;
             height: 20px;
-            border: 2px solid rgba(255, 255, 255, 0.3);
+            border: 2px solid rgba(0, 0, 0, 0.1); /* Use background-relative color */
             border-radius: 50%;
-            border-top-color: white;
+            border-top-color: var(--primary); /* Spinner color */
             animation: spin 1s linear infinite;
+            vertical-align: middle; /* Align better with text */
+            margin-right: 8px; /* Add spacing */
+        }
+        /* White spinner for buttons */
+        .btn .loading {
+             border: 2px solid rgba(255, 255, 255, 0.3);
+             border-top-color: white;
         }
 
         @keyframes spin {
@@ -348,14 +431,41 @@
 
         /* Responsive Design */
         @media (max-width: 768px) {
-            .nav-links {
-                display: none;
+            .nav-container {
+                 flex-direction: column;
+                 align-items: flex-start;
             }
-            
+            .nav-links {
+                /* display: none; */ /* Or make it a hamburger menu */
+                flex-direction: column;
+                gap: 0.5rem;
+                margin-top: 1rem;
+                width: 100%;
+            }
+             .nav-links a {
+                 padding: 0.8rem 1rem;
+                 text-align: center;
+                 background-color: #f8fafc;
+             }
+             .nav-links a:hover {
+                 background: var(--primary);
+                 color: white;
+             }
+
+            .wallet-section {
+                 margin-top: 1rem;
+                 width: 100%;
+                 justify-content: space-between;
+            }
+
+             .main-content {
+                 padding-top: 180px; /* Adjust based on taller mobile navbar */
+             }
+
             .hero h1 {
                 font-size: 2.5rem;
             }
-            
+
             .section {
                 padding: 1.5rem;
                 margin: 1rem;
@@ -368,21 +478,31 @@
             border-radius: 1rem;
             padding: 1.5rem;
             margin-top: 1rem;
+             border: 1px solid #e2e8f0;
+             box-shadow: var(--shadow-sm);
         }
 
         .history-list {
             max-height: 400px;
             overflow-y: auto;
+             border: 1px solid #e2e8f0; /* Add border */
+             border-radius: 0.5rem; /* Add border radius */
+             margin-top: 1rem; /* Space from button */
         }
 
         .history-item {
             display: grid;
-            grid-template-columns: 2fr 3fr 1fr;
+            grid-template-columns: minmax(100px, 1fr) minmax(200px, 3fr) auto; /* Adjusted columns */
             gap: 1rem;
             padding: 1rem;
             border-bottom: 1px solid #e2e8f0;
             align-items: center;
+            background-color: #fff; /* Ensure background */
+            transition: background-color 0.2s ease;
         }
+         .history-item:hover {
+             background-color: #f8fafc; /* Hover effect */
+         }
 
         .history-item:last-child {
             border-bottom: none;
@@ -391,24 +511,34 @@
         .history-filename {
             font-weight: 500;
             color: var(--dark);
+             overflow: hidden;
+             text-overflow: ellipsis;
+             white-space: nowrap;
         }
 
         .history-cid {
             font-family: monospace;
             color: var(--primary);
-            word-break: break-all;
+            word-break: break-all; /* Keep break-all for CID */
+             background-color: #f0f4f8;
+             padding: 0.2rem 0.4rem;
+             border-radius: 4px;
+             font-size: 0.85rem;
         }
 
         .history-timestamp {
             color: var(--gray);
             font-size: 0.875rem;
             text-align: right;
+            white-space: nowrap; /* Prevent wrapping */
         }
 
         .empty-history {
             text-align: center;
             padding: 2rem;
             color: var(--gray);
+            background-color: #f8fafc;
+             border-radius: 0.5rem;
         }
 
         .copy-btn {
@@ -420,11 +550,69 @@
             font-size: 0.75rem;
             cursor: pointer;
             transition: all 0.3s ease;
+            margin-left: 0.5rem; /* Space from timestamp */
         }
 
         .copy-btn:hover {
             background: var(--primary-dark);
         }
+
+        /* CID History specific styles */
+        #cid-history-display {
+            margin-top: 1.5rem;
+        }
+        #cid-history-display table {
+             width: 100%;
+             border-collapse: collapse;
+             margin-top: 1rem; /* Space from button */
+             box-shadow: var(--shadow-sm);
+             border-radius: 0.5rem;
+             overflow: hidden; /* Clip corners */
+        }
+        #cid-history-display th,
+        #cid-history-display td {
+             border: 1px solid #e2e8f0;
+             padding: 0.75rem 1rem;
+             text-align: left;
+        }
+        #cid-history-display th {
+             background-color: #f8fafc;
+             font-weight: 600;
+             color: var(--dark);
+        }
+        #cid-history-display td {
+             background-color: white;
+             font-size: 0.9rem;
+        }
+        #cid-history-display tr:nth-child(even) td {
+             background-color: #f8fafc; /* Zebra striping */
+        }
+        #cid-history-display td:nth-child(1) { /* CID column */
+             font-family: monospace;
+             word-break: break-all;
+        }
+        #cid-history-display td:nth-child(3) { /* Actions column */
+             text-align: center;
+        }
+         #cid-history-display .copy-cid-btn {
+             background: var(--primary);
+             color: white;
+             border: none;
+             padding: 0.3rem 0.6rem;
+             border-radius: 0.25rem;
+             font-size: 0.8rem;
+             cursor: pointer;
+             transition: background-color 0.2s ease;
+         }
+         #cid-history-display .copy-cid-btn:hover {
+             background: var(--primary-dark);
+         }
+
+         /* Utility classes */
+        .hidden {
+             display: none;
+        }
+
     </style>
 </head>
 
@@ -433,51 +621,51 @@
     <nav class="navbar">
         <div class="nav-container">
             <a href="#" class="logo">🧱 BlockVault</a>
+             <!-- Wallet Section integrated into Navbar -->
+             <div class="wallet-section">
+                 <button id="connectButton" class="btn">
+                     <span id="connectButtonText">🔗 Connect Wallet</span>
+                     <span class="loading hidden"></span>
+                 </button>
+                 <div id="walletAddress" class="hidden"></div>
+             </div>
+             <!-- Optional: Keep nav links or use a hamburger menu for mobile -->
             <div class="nav-links">
-                <a href="#upload">Upload</a>
-                <a href="#retrieve">Retrieve</a>
-                <a href="#history">History</a>
-                <a href="#about">About Us</a>
-                <a href="#contact">Contact</a>
+                <a href="#uploadSection" onclick="showSection('upload')">Upload</a>
+                <a href="#retrieveSection" onclick="showSection('retrieve')">Retrieve</a>
+                <a href="#historySection" onclick="showSection('history')">History</a>
+                <a href="#about" onclick="showSection('about')">About Us</a>
+                <a href="#contact" onclick="showSection('contact')">Contact</a>
             </div>
         </div>
     </nav>
 
-    <!-- Wallet Section -->
-    <div class="wallet-section">
-        <button id="connectButton" class="btn">
-            <span id="connectButtonText">🔗 Connect Wallet</span>
-            <span class="loading" style="display: none;"></span>
-        </button>
-        <div id="walletAddress"></div>
-    </div>
-
     <!-- Main Content -->
     <div class="main-content">
-        <!-- Hero Section -->
+        <!-- Hero Section (Optional - can be removed if sections cover all) -->
         <section class="hero">
             <h1>Secure Document Storage on Blockchain</h1>
             <p>Store your important documents securely using IPFS and Ethereum blockchain</p>
-            <button class="btn btn-primary" onclick="showSection('upload')">Get Started</button>
+            <button class="btn btn-secondary" onclick="showSection('upload')">Get Started</button>
         </section>
 
         <!-- Upload Section -->
-        <section id="uploadSection" class="section">
+        <section id="uploadSection" class="section active"> {/* Default active section */}
             <h2>Upload Document</h2>
             <div class="form-group">
                 <label for="title">Title</label>
                 <input type="text" id="title" name="title" placeholder="Document Title" required />
             </div>
-            
+
             <div class="form-group">
                 <label for="description">Description</label>
                 <input type="text" id="description" name="description" placeholder="Short description of the document" required />
             </div>
-            
+
             <div class="form-group">
                 <label>Document File</label>
                 <div class="file-input-wrapper">
-                    <label class="file-input-label">
+                    <label class="file-input-label" id="dropArea">
                         <div class="file-input-text">
                             <div class="file-input-icon">📄</div>
                             <div id="file-name">Choose a file or drag it here</div>
@@ -486,36 +674,44 @@
                     </label>
                 </div>
             </div>
-            
+
             <button type="button" id="uploadButton" class="btn btn-primary">
-                Upload to Blockchain
+                 <span id="uploadButtonText">Upload to Blockchain</span>
+                 <span class="loading hidden"></span>
             </button>
-            <div id="result"></div>
+            <div id="result" class="result"></div> {/* Ensure result div is always present */}
         </section>
 
         <!-- Retrieve Section -->
-        <section id="retrieveSection" class="section">
+        <section id="retrieveSection" class="section hidden">
             <h2>Retrieve Document</h2>
             <div class="form-group">
-                <label for="ipfsHash">IPFS Hash</label>
-                <input type="text" id="ipfsHash" name="ipfsHash" placeholder="Enter IPFS Hash to retrieve document" required />
+                <label for="ipfsHash">IPFS Hash (CID)</label>
+                <input type="text" id="ipfsHash" name="ipfsHash" placeholder="Enter IPFS Hash (CID) to retrieve document" required />
             </div>
-            <button type="button" id="retrieveButton" class="btn btn-primary">Fetch Document</button>
-            <div id="output"></div>
+            <button type="button" id="retrieveButton" class="btn btn-primary">
+                <span id="retrieveButtonText">Fetch Document</span>
+                <span class="loading hidden"></span>
+            </button>
+            <div id="output" class="output"></div> {/* Ensure output div is always present */}
         </section>
 
         <!-- History Section -->
-        <section id="historySection"  class="section">
-            <h2>Upload History</h2>
-            <button onclick="fetchCIDHistory()">View CID History</button>
+        <section id="historySection" class="section hidden">
+            <h2>Upload History (From Server)</h2>
+            <button id="fetchHistoryButton" class="btn btn-secondary" onclick="fetchCIDHistory()">
+                 <span id="fetchHistoryButtonText">View CID History</span>
+                 <span class="loading hidden"></span>
+            </button>
             <div id="cid-history-display">
-                <div id="cidHistory" style="margin-top: 30px;"></div>
-
+                <div id="cidHistory">
+                     <p class="empty-history">Click the button above to load history from the server.</p>
+                </div>
             </div>
         </section>
 
         <!-- About Section -->
-        <section id="about" class="section">
+        <section id="about" class="section hidden">
             <h2>About BlockVault</h2>
             <p>Welcome to BlockVault!</p>
             <p>We are a passionate team of developers working to make document storage safer, smarter, and decentralized.</p>
@@ -525,13 +721,14 @@
                 <li>Upload files securely to IPFS via Pinata</li>
                 <li>Connect their Ethereum wallet (MetaMask) for transaction verification</li>
                 <li>Instantly get a unique IPFS hash for every upload</li>
-                <li>Maintain a history of all uploaded CIDs with timestamps</li>
+                <li>Pay a small fee to store the document record permanently on the blockchain</li>
+                <li>Maintain a history of all uploaded CIDs with timestamps (via server)</li>
                 <li>Retrieve documents anytime using the IPFS hash</li>
             </ul>
         </section>
 
         <!-- Contact Section -->
-        <section id="contact" class="section">
+        <section id="contact" class="section hidden">
             <h2>Contact Us</h2>
             <div class="contact-info">
                 <p>📞 Phone: 123456789</p>
@@ -541,10 +738,12 @@
     </div>
 
     <script>
+        // --- Ethers.js, Contract Details, Global Variables ---
         let provider = null;
         let signer = null;
         let contract = null;
-        const CONTRACT_ADDRESS = "0x5fbdb2d56cdae59174d9d44ca8992a9242998b8a"; // Replace with your contract address AFTER deployment
+        // IMPORTANT: Replace with your ACTUAL deployed contract address
+        const CONTRACT_ADDRESS = "0x5fbdb2d56cdae59174d9d44ca8992a9242998b8a"; // From your deploy script output
         const CONTRACT_ABI = [
             {
                 "anonymous": false,
@@ -628,639 +827,655 @@
                 ],
                 "name": "storeDocument",
                 "outputs": [],
-                "stateMutability": "payable",
+                "stateMutability": "payable", // Crucial: function accepts ETH
                 "type": "function"
             }
-        ]; // Use your ABI
+        ];
 
+        // *** SET YOUR TRANSACTION FEE HERE ***
+        // This is the amount sent *with* the transaction (in addition to gas)
+        const UPLOAD_FEE_ETH = "0.001"; // Example: 0.001 ETH - Adjust as needed for affordability
+
+        // DOM Elements (Cache frequently used elements)
+        const connectButton = document.getElementById('connectButton');
+        const connectButtonText = document.getElementById('connectButtonText');
+        const connectLoading = connectButton?.querySelector('.loading');
+        const walletAddressDiv = document.getElementById('walletAddress');
+
+        const uploadButton = document.getElementById('uploadButton');
+        const uploadButtonText = document.getElementById('uploadButtonText');
+        const uploadLoading = uploadButton?.querySelector('.loading');
+        const resultDiv = document.getElementById('result');
+
+        const retrieveButton = document.getElementById('retrieveButton');
+        const retrieveButtonText = document.getElementById('retrieveButtonText');
+        const retrieveLoading = retrieveButton?.querySelector('.loading');
+        const outputDiv = document.getElementById('output');
+
+        const fetchHistoryButton = document.getElementById('fetchHistoryButton');
+        const fetchHistoryButtonText = document.getElementById('fetchHistoryButtonText');
+        const fetchHistoryLoading = fetchHistoryButton?.querySelector('.loading');
+        const cidHistoryDiv = document.getElementById('cidHistory');
+
+        const fileInput = document.getElementById('document');
+        const fileNameDisplay = document.getElementById('file-name');
+        const dropArea = document.getElementById('dropArea');
+        const titleInput = document.getElementById('title');
+        const descriptionInput = document.getElementById('description');
+        const ipfsHashInput = document.getElementById('ipfsHash');
+
+        // --- Initialization and Event Listeners ---
         document.addEventListener('DOMContentLoaded', function() {
-            console.log("DOM fully loaded, attaching event handlers using standard method...");
+            console.log("DOM fully loaded.");
 
-            const uploadButton = document.getElementById('uploadButton');
-            const retrieveButton = document.getElementById('retrieveButton');
-            
+            // Initial UI Setup
+            showSection('upload'); // Show upload section by default
+            if(resultDiv) resultDiv.innerHTML = ''; // Clear initial result text
+            if(outputDiv) outputDiv.innerHTML = ''; // Clear initial output text
+
+
+            // Attach Event Listeners Safely
+            if (connectButton) {
+                connectButton.onclick = connectWallet;
+            } else { console.error("Connect button not found."); }
+
             if (uploadButton) {
-                console.log("Attaching click listener to #uploadButton");
-                uploadButton.addEventListener('click', function(event) {
-                    // ///// IMMEDIATE DEBUGGING START /////
-                    console.error("!!!!!!!! UPLOAD BUTTON CLICK LISTENER FIRED !!!!!!!!!!");
-                    alert("Upload Listener Fired! Press OK. Does it reload AFTER this?"); 
-                    // ///// IMMEDIATE DEBUGGING END /////
-                    
-                    console.log("#uploadButton clicked, preventing default...");
-                    // Prevent any default action associated with the button or potential form
-                    event.preventDefault();
-                    event.stopPropagation();
-                    
-                    // Call the upload handler
-                    handleUpload();
-                    
-                    // Explicitly return false as an extra measure
-                    return false;
-                });
-            } else {
-                console.error("Upload button (#uploadButton) not found in DOM");
-            }
-            
+                uploadButton.addEventListener('click', handleUpload);
+            } else { console.error("Upload button not found."); }
+
             if (retrieveButton) {
-                console.log("Attaching click listener to #retrieveButton");
-                retrieveButton.addEventListener('click', function(event) {
-                    console.log("#retrieveButton clicked");
-                    event.preventDefault();
-                    event.stopPropagation();
-                    handleRetrieve();
-                    return false;
-                });
-            } else {
-                console.error("Retrieve button (#retrieveButton) not found in DOM");
-            }
-            
-            // Initialize other elements and handlers
-            const connectButton = document.getElementById('connectButton');
-            const fileInput = document.getElementById('document');
-            const fileNameDisplay = document.getElementById('file-name');
-            
-            if(connectButton) {
-                 connectButton.onclick = connectWallet; 
-            }
-            
-            // File input handling
-            if (fileInput) {
-                fileInput.addEventListener('change', function(e) {
-                    if (e.target.files.length > 0) {
-                        fileNameDisplay.textContent = e.target.files[0].name;
-                        e.target.closest('.file-input-label').classList.add('file-selected');
-                    } else {
-                        fileNameDisplay.textContent = 'Choose a file or drag it here';
-                        e.target.closest('.file-input-label').classList.remove('file-selected');
-                    }
-                });
-            }
-            
-            // Drag and drop handling
-            const dropArea = document.querySelector('.file-input-label');
-            if (dropArea) {
+                 retrieveButton.addEventListener('click', handleRetrieve);
+            } else { console.error("Retrieve button not found."); }
+
+            // File Input Handling
+            if (fileInput && fileNameDisplay && dropArea) {
+                fileInput.addEventListener('change', handleFileSelect);
+
+                // Drag and drop handling
                 ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
                     dropArea.addEventListener(eventName, preventDefaults, false);
+                    document.body.addEventListener(eventName, preventDefaults, false); // Prevent browser default drop behavior anywhere else
                 });
-                
-                function preventDefaults(e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                }
-                
+
                 ['dragenter', 'dragover'].forEach(eventName => {
-                    dropArea.addEventListener(eventName, highlight, false);
+                    dropArea.addEventListener(eventName, () => dropArea.classList.add('highlight'), false);
                 });
-                
+
                 ['dragleave', 'drop'].forEach(eventName => {
-                    dropArea.addEventListener(eventName, unhighlight, false);
+                    dropArea.addEventListener(eventName, () => dropArea.classList.remove('highlight'), false);
                 });
-                
-                function highlight() {
-                    dropArea.classList.add('highlight');
-                }
-                
-                function unhighlight() {
-                    dropArea.classList.remove('highlight');
-                }
-                
+
                 dropArea.addEventListener('drop', handleDrop, false);
-                
-                function handleDrop(e) {
-                    const dt = e.dataTransfer;
-                    const files = dt.files;
-                    fileInput.files = files;
-                    
-                    if (files.length > 0) {
-                        fileNameDisplay.textContent = files[0].name;
-                        dropArea.classList.add('file-selected');
+
+            } else { console.error("File input elements not found."); }
+
+            // Check MetaMask & Setup Listeners (Run after ethers.js is confirmed loaded)
+            function initializeMetaMask() {
+                 if (typeof window.ethereum === 'undefined') {
+                     if (walletAddressDiv) {
+                         walletAddressDiv.innerText = "❌ MetaMask not found";
+                         walletAddressDiv.classList.remove('hidden');
                     }
-                }
-            }
-            
-            // Check if MetaMask is installed
-            if (typeof window.ethereum === 'undefined') {
-                const walletAddressDiv = document.getElementById('walletAddress');
-                const connectButtonText = document.getElementById('connectButtonText');
-                
-                if (walletAddressDiv) walletAddressDiv.innerText = "❌ MetaMask not found";
-                if (connectButtonText) connectButtonText.innerText = "Install MetaMask";
-            } else {
-                // Set up MetaMask event listeners
-                window.ethereum.on('accountsChanged', function(accounts) {
-                    if (accounts.length === 0) {
-                        // Handle account disconnection
-                        const walletAddressDiv = document.getElementById('walletAddress');
-                        const connectButton = document.getElementById('connectButton');
-                        const connectButtonText = document.getElementById('connectButtonText');
-
-                        if (walletAddressDiv) walletAddressDiv.innerText = "❌ Disconnected";
-                        if (connectButton && connectButtonText) {
-                            connectButton.style.background = 'var(--secondary-gradient)';
-                            connectButtonText.innerText = '🔗 Connect Wallet';
-                        }
-
-                        provider = null;
-                        signer = null;
-                        contract = null;
-                    } else {
-                        // Reconnect when account changes
-                        connectWallet();
-                    }
-                });
-
-                window.ethereum.on('chainChanged', function() {
-                    // Reload the page when chain changes
-                    window.location.reload();
-                });
+                     if (connectButtonText) connectButtonText.innerText = "Install MetaMask";
+                     if (connectButton) connectButton.onclick = () => { window.open("https://metamask.io/download/", "_blank"); }; // Link to install
+                     // Disable buttons requiring wallet
+                     if (uploadButton) uploadButton.disabled = true;
+                     if (retrieveButton) retrieveButton.disabled = true; // Retrieve doesn't strictly need wallet, but good practice
+                 } else {
+                     // Set up MetaMask event listeners
+                     window.ethereum.on('accountsChanged', handleAccountsChanged);
+                     window.ethereum.on('chainChanged', handleChainChanged);
+                     // Attempt auto-connect if previously connected (optional)
+                     // connectWallet(true); // Pass flag for silent connect attempt
+                 }
             }
 
-            // Initialize history display
-            displayCIDHistory();
+            // Wait a brief moment for ethers.js to potentially load before checking MM
+            setTimeout(initializeMetaMask, 500);
 
-            // History button
-            const historyButton = document.getElementById('historyBtn');
-            if (historyButton) {
-                historyButton.addEventListener('click', () => showSection('history'));
-            }
-
-            // Add hover effects to interactive elements
-            document.querySelectorAll('.interactive-card').forEach(card => {
-                card.addEventListener('mouseenter', () => {
-                    card.style.transform = 'translateY(-5px)';
-                });
-                card.addEventListener('mouseleave', () => {
-                    card.style.transform = 'translateY(0)';
-                });
-            });
         });
 
-        function showSection(section) {
-             // Remove active class from all buttons
-            const uploadBtn = document.getElementById('uploadBtn');
-            const retrieveBtn = document.getElementById('retrieveBtn');
-            const historyBtn = document.getElementById('historyBtn');
-            if(uploadBtn) uploadBtn.classList.remove('active');
-            if(retrieveBtn) retrieveBtn.classList.remove('active');
-            if(historyBtn) historyBtn.classList.remove('active');
-            
-            // Add active class to clicked button
-            const activeBtn = document.getElementById(section + 'Btn');
-            if(activeBtn) activeBtn.classList.add('active');
-            
-            // Get all sections and hide them with animation
-            const sections = document.querySelectorAll('.section');
-            sections.forEach(s => {
-                s.classList.remove('active');
-            });
-            
-            // Show the selected section with animation
-            const targetSection = document.getElementById(section + 'Section');
-            if(targetSection) {
-                void targetSection.offsetWidth; // Trigger reflow for animation reset
-                targetSection.classList.add('active');
+        // --- Wallet Connection ---
+        async function connectWallet(silent = false) {
+            if (typeof window.ethers === 'undefined') {
+                alert("Ethers.js library is not loaded. Cannot connect wallet.");
+                return;
             }
-        }
+            if (!window.ethereum) {
+                alert("Please install MetaMask!");
+                return;
+            }
 
-        async function connectWallet() {
-            const connectButton = document.getElementById('connectButton');
-            const connectButtonText = document.getElementById('connectButtonText');
-            const loadingSpinner = connectButton.querySelector('.loading');
-            const walletAddressDiv = document.getElementById('walletAddress');
-
-            // UI update helper
-            function updateConnectUI(text, isLoading, isConnected = false) {
-                if(connectButtonText) {
-                    connectButtonText.innerText = text;
-                    connectButtonText.style.opacity = isLoading ? '0.5' : '1';
-                }
-                if(loadingSpinner) {
-                    loadingSpinner.style.display = isLoading ? 'inline-block' : 'none';
-                }
-                if(connectButton) {
-                    connectButton.classList.toggle('connected', isConnected);
-                }
+            setLoadingState(connectButton, connectLoading, true);
+            if(connectButtonText) connectButtonText.textContent = "Connecting...";
+            if(walletAddressDiv) {
+                walletAddressDiv.innerText = "🔄 Connecting...";
+                walletAddressDiv.classList.remove('hidden');
             }
 
             try {
-                // Check if MetaMask is installed
-                if (typeof window.ethereum === 'undefined') {
-                    alert("Please install MetaMask!");
-                    updateConnectUI("Install MetaMask", false);
-                    if(walletAddressDiv) walletAddressDiv.innerText = "❌ MetaMask not found";
-                    return;
-                }
-
-                updateConnectUI("Connecting...", true);
-                if(walletAddressDiv) walletAddressDiv.innerText = "🔄 Connecting...";
-
                 // Request account access
                 const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-                
+
                 if (!accounts || accounts.length === 0) {
-                    alert("No accounts found. Please connect an account in MetaMask.");
-                    updateConnectUI("Connect Wallet", false);
-                    if(walletAddressDiv) walletAddressDiv.innerText = "❌ No accounts connected";
-                    return;
+                    throw new Error("No accounts found. Please unlock MetaMask or create an account.");
                 }
 
-                // Initialize ethers provider
-                provider = new ethers.providers.Web3Provider(window.ethereum);
-                
-                // Get signer
-                signer = provider.getSigner();
-                
-                // Get address
+                // Initialize ethers provider (v6 syntax)
+                provider = new ethers.BrowserProvider(window.ethereum);
+                signer = await provider.getSigner();
                 const address = await signer.getAddress();
-                
+                const network = await provider.getNetwork();
+
                 // Initialize contract
                 contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
 
                 // Update UI
                 const formattedAddress = `${address.substring(0, 6)}...${address.substring(address.length - 4)}`;
-                if(walletAddressDiv) walletAddressDiv.innerText = "🟢 Connected: " + formattedAddress;
-                updateConnectUI("✅ Connected", false, true);
+                if(walletAddressDiv) {
+                    walletAddressDiv.innerText = `🟢 ${formattedAddress} (${network.name})`;
+                    walletAddressDiv.classList.remove('hidden');
+                }
+                if(connectButtonText) connectButtonText.textContent = "✅ Connected";
+                if(connectButton) connectButton.classList.add('connected');
 
-                // Add pulse animation to connected elements
-                document.querySelectorAll('.interactive-card').forEach(card => {
-                    card.classList.add('pulse');
-                });
+                // Re-enable buttons
+                if (uploadButton) uploadButton.disabled = false;
+                if (retrieveButton) retrieveButton.disabled = false;
+                if (fetchHistoryButton) fetchHistoryButton.disabled = false;
 
             } catch (err) {
                 console.error("Wallet connection failed:", err);
-                updateConnectUI("Connection Failed", false);
-                if(walletAddressDiv) walletAddressDiv.innerText = "❌ Connection failed: " + (err.message || "Unknown error");
-                alert("Failed to connect wallet: " + (err.message || "Unknown error"));
+                const message = err.code === 4001 ? "Connection rejected by user." : (err.message || "Unknown error");
+                if(walletAddressDiv) {
+                    walletAddressDiv.innerText = `❌ ${message}`;
+                    walletAddressDiv.classList.remove('hidden');
+                }
+                if(connectButtonText) connectButtonText.textContent = "Connection Failed";
+                if(connectButton) connectButton.classList.remove('connected');
+                // Keep buttons disabled if connection fails
+                if (uploadButton) uploadButton.disabled = true;
+                if (retrieveButton) retrieveButton.disabled = true;
+                if (fetchHistoryButton) fetchHistoryButton.disabled = true;
+
+                if (!silent) alert("Failed to connect wallet: " + message);
+
+            } finally {
+                setLoadingState(connectButton, connectLoading, false);
             }
         }
 
-        async function fetchCIDHistory() {
-  try {
-    const response = await fetch('http://localhost:5000/cid-history');
-    const result = await response.json();
-    
-    if (result.success) {
-      const cidHistoryDiv = document.getElementById('cidHistory');
-      cidHistoryDiv.innerHTML = ''; // Clear previous content
-
-      // Create Table
-      const table = document.createElement('table');
-      table.style.width = '100%';
-      table.style.borderCollapse = 'collapse';
-
-      // Table Header
-      const headerRow = document.createElement('tr');
-      headerRow.innerHTML = `
-        <th style="border: 1px solid #ddd; padding: 8px;">CID</th>
-        <th style="border: 1px solid #ddd; padding: 8px;">Timestamp</th>
-        <th style="border: 1px solid #ddd; padding: 8px;">Actions</th>
-      `;
-      table.appendChild(headerRow);
-
-      // Table Data
-      result.history.forEach(item => {
-        const row = document.createElement('tr');
-        row.innerHTML = `
-          <td style="border: 1px solid #ddd; padding: 8px;">${item.cid}</td>
-          <td style="border: 1px solid #ddd; padding: 8px;">${new Date(item.timestamp).toLocaleString()}</td>
-          <td style="border: 1px solid #ddd; padding: 8px;">
-            <button onclick="copyText('${item.cid}')" style="padding: 5px 10px; background: #3182ce; color: white; border: none; border-radius: 5px; cursor: pointer;">📋 Copy CID</button>
-          </td>
-        `;
-        table.appendChild(row);
-      });
-
-      cidHistoryDiv.appendChild(table);
-    } else {
-      alert('Failed to fetch CID history.');
-    }
-  } catch (error) {
-    console.error('Error fetching CID history:', error);
-    alert('An error occurred while fetching CID history.');
-  }
-}
-
-// Copy Function
-function copyText(text) {
-  navigator.clipboard.writeText(text).then(() => {
-    alert('✅ CID copied to clipboard!');
-  }).catch(err => {
-    console.error('Failed to copy text: ', err);
-  });
-}
-
-
-        // UPLOAD HANDLER WITH FULL TRY/CATCH
-        async function handleUpload() {
-             console.log("handleUpload function started"); // Restoring full functionality
-             const resultDiv = document.getElementById('result');
-
-             // Define UI update helper function
-             function updateResultUI(message, type = 'info') {
-                 let className = 'info';
-                 if (type === 'success') className = 'success-message';
-                 if (type === 'error') className = 'error-message';
-                 if (type === 'warning') className = 'warning-message'; // Define warning class if needed
-                 
-                 resultDiv.innerHTML = `
-                     <div class="${className} animate__animated animate__fadeIn">
-                         ${message}
-                     </div>`;
-             }
-
-             // Wrap the entire function in a try...catch block
-             try {
-                 // Check for wallet connection first
-                 if (!provider || !signer) {
-                     console.log("Wallet not connected");
-                     updateResultUI(`
-                         <p>Please connect your wallet first.</p>
-                         <button onclick="connectWallet()" class="btn btn-primary">Connect Wallet</button>
-                     `, 'error');
-                     return;
+        // --- MetaMask Event Handlers ---
+         function handleAccountsChanged(accounts) {
+             console.log("Accounts changed:", accounts);
+             if (accounts.length === 0) {
+                 // MetaMask disconnected
+                 provider = null;
+                 signer = null;
+                 contract = null;
+                 if(walletAddressDiv) {
+                      walletAddressDiv.innerText = "❌ Disconnected";
+                      walletAddressDiv.classList.remove('hidden'); // Keep visible
                  }
-                 
-                 // Get form values
-                 const titleInput = document.getElementById('title');
-                 const descriptionInput = document.getElementById('description');
-                 const fileInput = document.getElementById('document');
-                 
-                 if (!titleInput || !descriptionInput || !fileInput) {
-                     console.error("Form elements not found");
-                     updateResultUI(`<p>❌ Form elements not found</p>`, 'error');
-                     return;
-                 }
-                 
-                 const file = fileInput.files[0];
-                 const title = titleInput.value;
-                 const description = descriptionInput.value;
+                 if(connectButtonText) connectButtonText.textContent = '🔗 Connect Wallet';
+                 if(connectButton) connectButton.classList.remove('connected');
+                 // Disable buttons
+                 if (uploadButton) uploadButton.disabled = true;
+                 if (retrieveButton) retrieveButton.disabled = true;
+                  if (fetchHistoryButton) fetchHistoryButton.disabled = true;
 
-                 // Validation
-                 if (!file) {
-                     updateResultUI(`<p>❌ Please select a file to upload</p>`, 'error');
-                     return;
-                 }
-                 if (!title.trim()) {
-                     updateResultUI(`<p>❌ Please enter a title</p>`, 'error');
-                     return;
-                 }
-                 if (!description.trim()) {
-                     updateResultUI(`<p>❌ Please enter a description</p>`, 'error');
-                     return;
-                 }
-
-                 // Show loading message for IPFS
-                 updateResultUI(`<p><span class="loading" style="display: inline-block; vertical-align: middle; margin-right: 10px;"></span> Uploading to IPFS...</p>`, 'info');
-                 
-                 // Step 1: Upload to IPFS via server
-                 console.log("Uploading to IPFS...");
-                 const formData = new FormData();
-                 formData.append('document', file);
-                 formData.append('title', title);
-                 formData.append('description', description);
-                 
-                 const res = await fetch('http://localhost:5000/upload', {
-                     method: 'POST',
-                     body: formData,
-                 });
-                 const data = await res.json();
-
-                 if (!data.success) {
-                      console.error("IPFS upload failed:", data.error);
-                      updateResultUI(`<p>❌ IPFS upload failed: ${data.error || 'Unknown error'}</p>`, 'error');
-                      return;
-                 }
-                 console.log("IPFS upload successful, hash:", data.hash);
-                 
-                  // Double check contract instance exists
-                 if (!contract) {
-                     console.log("Contract not found, trying to recreate...");
-                     try {
-                         contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
-                         if (!contract) throw new Error("Contract recreation failed");
-                     } catch (err) {
-                         console.error("Failed to create contract instance:", err);
-                          updateResultUI(`
-                             <p>❌ Blockchain connection error. File uploaded to IPFS but cannot proceed.</p>
-                             <p>IPFS Hash: <span style="font-family: monospace; background: #f3f4f6; padding: 4px 8px; border-radius: 4px;">${data.hash}</span></p>
-                         `, 'error');
-                          return;
-                     }
-                 }
-                 
-                 // Show message while waiting for MetaMask approval
-                 updateResultUI(`
-                     <p><span class="loading" style="display: inline-block; vertical-align: middle; margin-right: 10px;"></span> Waiting for MetaMask approval...</p>
-                     <p>Please check your MetaMask wallet and approve the transaction.</p>
-                     <p>IPFS Hash: ${data.hash}</p>
-                 `, 'info');
-
-                 // Step 2: Blockchain transaction
-                 const txAmount = "0.01";
-                 const txOptions = { value: ethers.utils.parseEther(txAmount), gasLimit: 300000 };
-                 console.log("Sending transaction to contract...", { hash: data.hash, fileName: file.name, options: txOptions });
-                 
-                 const tx = await contract.storeDocument(data.hash, file.name, txOptions);
-                 console.log("Transaction sent:", tx.hash);
-
-                 // Show message while waiting for confirmation
-                 updateResultUI(`
-                     <p><span class="loading" style="display: inline-block; vertical-align: middle; margin-right: 10px;"></span> Transaction submitted, waiting for confirmation...</p>
-                     <p>Transaction hash: <a href="https://etherscan.io/tx/${tx.hash}" target="_blank">${tx.hash.substring(0, 10)}...${tx.hash.substring(tx.hash.length - 8)}</a></p>
-                 `, 'info');
-
-                 const receipt = await tx.wait();
-                 console.log("Transaction mined:", receipt);
-
-                 // Calculate costs
-                 const gasUsed = receipt.gasUsed;
-                 const gasPrice = receipt.effectiveGasPrice || tx.gasPrice;
-                 const gasCostWei = gasUsed.mul(gasPrice);
-                 const gasCostEth = ethers.utils.formatEther(gasCostWei);
-                 const totalCost = (parseFloat(gasCostEth) + parseFloat(txAmount)).toFixed(5);
-                 console.log("Transaction complete - details:", { gasUsed: gasUsed.toString(), gasCostEth, totalCost });
-
-                 // Show success message
-                 updateResultUI(`
-                     <h3 style="color: #065f46; margin-top: 0;">✅ Upload Successful!</h3>
-                     <p><strong>Transaction Details:</strong></p>
-                     <p>📄 File: ${file.name}</p>
-                     <p>💰 Transaction Cost: ${totalCost} ETH (${txAmount} ETH fee + ${gasCostEth} ETH gas)</p>
-                     <p>🔗 Transaction Hash: <a href="https://etherscan.io/tx/${receipt.transactionHash}" target="_blank">${receipt.transactionHash.substring(0, 10)}...${receipt.transactionHash.substring(receipt.transactionHash.length - 8)}</a></p>
-                     <p><strong>IPFS Details:</strong></p>
-                     <p>📦 IPFS Hash: <span style="font-family: monospace; background: #f3f4f6; padding: 4px 8px; border-radius: 4px;">${data.hash}</span></p>
-                     <p>🔍 Use this hash in the Retrieve Document section to access your file</p>
-                     <div style="display: flex; gap: 10px; margin-top: 15px;">
-                         <a href="https://ipfs.io/ipfs/${data.hash}" target="_blank" class="btn btn-primary" style="flex: 1;">View on IPFS Gateway</a>
-                         <button onclick="copyToClipboard('${data.hash}')" class="btn" style="flex: 1; background: #6b7280; color: white;">Copy Hash</button>
-                     </div>
-                 `, 'success');
-
-                 // Reset form manually
-                 titleInput.value = '';
-                 descriptionInput.value = '';
-                 fileInput.value = ''; // This clears the file input
-                 const fileNameDisplay = document.getElementById('file-name');
-                 if(fileNameDisplay) fileNameDisplay.textContent = 'Choose a file or drag it here';
-                 const fileLabel = fileInput.closest('.file-input-label');
-                 if(fileLabel) fileLabel.classList.remove('file-selected');
-
-                 // After successful upload, update history
-                 updateCIDHistory(data.hash, file.name);
-
-             } catch (error) {
-                 console.error("Error during upload process:", error);
-                 let errorMessage = `<p>❌ An unexpected error occurred: ${error.message || 'Unknown error'}</p>`;
-                 
-                 // Handle specific transaction errors
-                 if (error.code === 4001 || (error.message && error.message.includes("user rejected"))) {
-                     errorMessage = `
-                         <p>❌ Transaction rejected by user.</p>
-                         <p>File upload might have succeeded on IPFS, but it was not registered on the blockchain.</p>
-                     `;
-                     // Optionally show IPFS hash if available from `data` variable scope (needs adjustment)
-                 } else if (error.message && error.message.includes("insufficient funds")) {
-                     errorMessage = `<p>❌ Transaction failed: Insufficient funds for gas.</p>`;
-                 }
-                 
-                 updateResultUI(errorMessage, 'error');
-             }
-             // No return false needed here as the event listener handles prevention
-         }
-         
-         // Handler for retrieve button click
-         async function handleRetrieve() {
-             console.log("Retrieve button clicked");
-             const outputDiv = document.getElementById('output');
-             const ipfsHashInput = document.getElementById('ipfsHash');
-             
-             if (!ipfsHashInput) {
-                 console.error("IPFS hash input not found");
-                 outputDiv.innerHTML = `<div class="error-message"><p>❌ Input element not found</p></div>`;
-                 return;
-             }
-             
-             const ipfsHash = ipfsHashInput.value;
-             console.log("Attempting to retrieve IPFS hash:", ipfsHash);
-
-             if (!ipfsHash.trim()) {
-                 outputDiv.innerHTML = `<div class="error-message"><p>❌ Please enter an IPFS Hash.</p></div>`;
-                 return;
-             }
-
-             try {
-                 // Show loading state
-                 outputDiv.innerHTML = `
-                 <div class="info animate__animated animate__fadeIn">
-                     <p><span class="loading" style="display: inline-block; vertical-align: middle; margin-right: 10px;"></span> Fetching document from IPFS...</p>
-                 </div>`;
-                 
-                 // Show results immediately (assuming IPFS link is valid)
-                 // In a real app, you might want to verify the hash exists first
-                 setTimeout(() => {
-                     const ipfsLink = `https://ipfs.io/ipfs/${ipfsHash}`;
-                     outputDiv.innerHTML = `
-                     <div class="success-message animate__animated animate__fadeIn">
-                         <h3 style="color: #065f46; margin-top: 0;">📄 Document Info</h3>
-                         <p><strong>IPFS Hash:</strong> <span style="font-family: monospace; background: #f3f4f6; padding: 4px 8px; border-radius: 4px;">${ipfsHash}</span></p>
-                         <div style="display: flex; gap: 10px; margin-top: 15px;">
-                             <a href="${ipfsLink}" target="_blank" class="btn btn-primary" style="flex: 1;">View Document</a>
-                             <a href="${ipfsLink}" download class="btn btn-success" style="flex: 1;">Download</a>
-                             <button onclick="copyToClipboard('${ipfsHash}')" class="btn" style="flex: 1; background: #6b7280; color: white;">Copy Hash</button>
-                         </div>
-                     </div>`;
-                 }, 500); // Short delay for perceived loading
-
-             } catch (err) {
-                 console.error("Retrieve error:", err);
-                 outputDiv.innerHTML = `<div class="error-message"><p>❌ Error retrieving document: ${err.message}</p></div>`;
+             } else {
+                 // Account switched, reconnect
+                 connectWallet();
              }
          }
 
-         // Utility function to copy text to clipboard
-         function copyToClipboard(text) {
-             navigator.clipboard.writeText(text).then(() => {
-                 // Show a temporary tooltip
-                 const tooltip = document.createElement('div');
-                 tooltip.textContent = 'Copied!';
-                 tooltip.style.position = 'fixed';
-                 tooltip.style.top = '50%';
-                 tooltip.style.left = '50%';
-                 tooltip.style.transform = 'translate(-50%, -50%)';
-                 tooltip.style.padding = '10px 20px';
-                 tooltip.style.background = 'rgba(0, 0, 0, 0.8)';
-                 tooltip.style.color = 'white';
-                 tooltip.style.borderRadius = '5px';
-                 tooltip.style.zIndex = '9999';
-                 tooltip.style.animation = 'fadeInOut 1.5s ease forwards';
-                 
-                 // Add keyframe animation for the tooltip
-                 const style = document.createElement('style');
-                 style.textContent = `
-                 @keyframes fadeInOut {
-                     0% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
-                     20% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-                     80% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-                     100% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
-                 }`;
-                 document.head.appendChild(style);
-                 
-                 document.body.appendChild(tooltip);
-                 
-                 // Remove tooltip after animation
-                 setTimeout(() => {
-                     if (document.body.contains(tooltip)) { 
-                         document.body.removeChild(tooltip);
-                     }
-                 }, 1500);
-             }).catch(err => {
-                 console.error('Failed to copy text: ', err);
+         function handleChainChanged() {
+             console.log("Network changed");
+             alert("Network changed! Reloading the page to ensure compatibility.");
+             window.location.reload();
+         }
+
+
+        // --- Section Navigation ---
+        function showSection(sectionId) {
+            console.log("Showing section:", sectionId);
+            const sections = document.querySelectorAll('.main-content .section');
+            sections.forEach(s => {
+                if (s.id === sectionId + 'Section') {
+                    s.classList.remove('hidden');
+                    s.classList.add('active'); // For potential animation
+                } else {
+                    s.classList.add('hidden');
+                    s.classList.remove('active');
+                }
+            });
+
+             // Optional: Update active link in navbar
+             const navLinks = document.querySelectorAll('.nav-links a');
+             navLinks.forEach(link => {
+                 if (link.getAttribute('href') === `#${sectionId}Section`) {
+                     link.style.fontWeight = '700'; // Example active style
+                     link.style.color = 'var(--primary)';
+                 } else {
+                     link.style.fontWeight = '500';
+                     link.style.color = 'var(--dark)';
+                 }
              });
-         }
 
-        // Constants
-        const MINIMUM_PAYMENT = ethers.utils.parseEther("0.0001"); // 0.0001 ETH
-        let cidHistory = JSON.parse(localStorage.getItem('cidHistory') || '[]');
-
-        // Function to update CID history
-        function updateCIDHistory(cid, filename) {
-            const historyItem = {
-                cid,
-                filename,
-                timestamp: new Date().toLocaleString()
-            };
-            cidHistory.unshift(historyItem);
-            localStorage.setItem('cidHistory', JSON.stringify(cidHistory));
-            displayCIDHistory();
+              // If showing history, maybe auto-fetch?
+             // if (sectionId === 'history' && cidHistoryDiv && cidHistoryDiv.querySelector('.empty-history')) {
+             //     fetchCIDHistory();
+             // }
         }
 
-        // Function to display CID history
-        function displayCIDHistory() {
-            const historyList = document.getElementById('historyList');
-            if (!historyList) return;
+        // --- File Input Handling ---
+        function handleFileSelect(event) {
+            const files = event.target.files;
+            if (files.length > 0) {
+                updateFileName(files[0].name);
+            } else {
+                updateFileName('Choose a file or drag it here');
+            }
+        }
 
-            if (cidHistory.length === 0) {
-                historyList.innerHTML = `
-                    <div class="empty-history">
-                        <p>No uploads yet</p>
-                        <p>Upload your first document to see it here</p>
-                    </div>
-                `;
+        function handleDrop(event) {
+            const dt = event.dataTransfer;
+            const files = dt.files;
+            if (files.length > 0) {
+                 fileInput.files = files; // Assign dropped files to the input
+                 updateFileName(files[0].name);
+            } else {
+                 updateFileName('Choose a file or drag it here');
+            }
+        }
+
+         function updateFileName(name) {
+             if (fileNameDisplay) {
+                 fileNameDisplay.textContent = name;
+                 if (name !== 'Choose a file or drag it here' && dropArea) {
+                     dropArea.classList.add('file-selected');
+                 } else if(dropArea) {
+                     dropArea.classList.remove('file-selected');
+                 }
+             }
+         }
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        // --- UI Helpers ---
+        function setLoadingState(button, loader, isLoading) {
+            if(!button || !loader) return;
+            if (isLoading) {
+                button.disabled = true;
+                loader.classList.remove('hidden');
+            } else {
+                button.disabled = false;
+                loader.classList.add('hidden');
+            }
+        }
+
+        function displayMessage(element, message, type = 'info') {
+            if (!element) return;
+            let className = 'info-message'; // Default
+            if (type === 'success') className = 'success-message';
+            if (type === 'error') className = 'error-message';
+
+            element.innerHTML = `
+                <div class="${className} animate__animated animate__fadeIn">
+                    ${message}
+                </div>`;
+        }
+
+        // --- Core Functionality: Upload ---
+        async function handleUpload() {
+            console.log("handleUpload started");
+            if (!uploadButton) return;
+
+            setLoadingState(uploadButton, uploadLoading, true);
+            if(uploadButtonText) uploadButtonText.textContent = 'Processing...';
+            displayMessage(resultDiv, `<p><span class="loading"></span> Preparing upload...</p>`, 'info');
+
+            // 1. Check Wallet Connection
+            if (!provider || !signer || !contract) {
+                displayMessage(resultDiv, `
+                    <p>❌ Wallet not connected.</p>
+                    <p>Please connect your wallet first to upload.</p>
+                    <button onclick="connectWallet()" class="btn btn-primary" style="margin-top: 10px;">Connect Wallet</button>
+                `, 'error');
+                setLoadingState(uploadButton, uploadLoading, false);
+                if(uploadButtonText) uploadButtonText.textContent = 'Upload to Blockchain';
                 return;
             }
 
-            historyList.innerHTML = cidHistory.map(item => `
-                <div class="history-item">
-                    <div class="history-filename">${item.filename}</div>
-                    <div class="history-cid">${item.cid}</div>
-                    <div class="history-timestamp">
-                        ${item.timestamp}
-                        <button class="copy-btn" onclick="copyToClipboard('${item.cid}')">Copy</button>
+            // 2. Get Form Data and Validate
+            const file = fileInput?.files[0];
+            const title = titleInput?.value;
+            const description = descriptionInput?.value;
+
+            if (!file || !title?.trim() || !description?.trim()) {
+                let errorMsg = "❌ Please fill in all fields: ";
+                if (!title?.trim()) errorMsg += "Title, ";
+                if (!description?.trim()) errorMsg += "Description, ";
+                if (!file) errorMsg += "File";
+                displayMessage(resultDiv, `<p>${errorMsg.replace(/, $/, '')}.</p>`, 'error');
+                setLoadingState(uploadButton, uploadLoading, false);
+                if(uploadButtonText) uploadButtonText.textContent = 'Upload to Blockchain';
+                return;
+            }
+
+            // 3. First, trigger MetaMask transaction
+            displayMessage(resultDiv, `
+                <p><span class="loading"></span> Please approve the transaction in MetaMask...</p>
+                <p>This will transfer ${UPLOAD_FEE_ETH} ETH to store your document on the blockchain.</p>`, 'info');
+
+            try {
+                // Prepare transaction options
+                const txOptions = {
+                    value: ethers.parseEther(UPLOAD_FEE_ETH),
+                };
+
+                console.log("Sending transaction to contract:", { fileName: file.name, options: txOptions });
+                
+                // This will trigger MetaMask popup first
+                const tx = await contract.storeDocument("", file.name, txOptions);
+                console.log("Transaction sent:", tx.hash);
+
+                displayMessage(resultDiv, `
+                    <p>✅ Transaction sent! Hash: <a href="https://sepolia.etherscan.io/tx/${tx.hash}" target="_blank" rel="noopener noreferrer">${tx.hash.substring(0, 10)}...</a></p>
+                    <p><span class="loading"></span> Waiting for transaction confirmation...</p>`, 'info');
+
+                // Wait for transaction confirmation
+                const receipt = await tx.wait();
+                console.log("Transaction mined:", receipt);
+
+                // 4. After transaction is confirmed, upload to IPFS
+                displayMessage(resultDiv, `<p><span class="loading"></span> Transaction confirmed! Now uploading to IPFS...</p>`, 'info');
+                
+                const formData = new FormData();
+                formData.append('document', file);
+                formData.append('title', title);
+                formData.append('description', description);
+
+                const response = await fetch('http://localhost:5000/upload', {
+                    method: 'POST',
+                    body: formData,
+                });
+                const data = await response.json();
+
+                if (!response.ok || !data.success) {
+                    throw new Error(data.error || `Server error: ${response.statusText}`);
+                }
+                const ipfsHash = data.hash;
+                console.log("IPFS upload successful:", ipfsHash);
+
+                // Calculate costs
+                const gasUsed = receipt.gasUsed;
+                const gasPrice = receipt.effectiveGasPrice || tx.gasPrice;
+                const gasCostWei = gasUsed * gasPrice;
+                const gasCostEth = ethers.formatEther(gasCostWei);
+                const totalCostEth = (parseFloat(ethers.formatEther(txOptions.value)) + parseFloat(gasCostEth)).toFixed(6);
+
+                // Display Success
+                displayMessage(resultDiv, `
+                    <h3 style="color: var(--secondary-dark); margin-top: 0;">✅ Upload & Storage Successful!</h3>
+                    <p><strong>File:</strong> ${escapeHtml(file.name)}</p>
+                    <p><strong>IPFS Hash (CID):</strong> <code style="background:#eee; padding: 2px 5px; border-radius:3px;">${ipfsHash}</code></p>
+                    <p><strong>Blockchain Record:</strong> Confirmed in block ${receipt.blockNumber}</p>
+                    <p><strong>Transaction Hash:</strong> <a href="https://sepolia.etherscan.io/tx/${receipt.transactionHash}" target="_blank" rel="noopener noreferrer">${receipt.transactionHash.substring(0, 10)}...${receipt.transactionHash.substring(receipt.transactionHash.length - 8)}</a></p>
+                    <p><strong>Total Cost:</strong> ≈${totalCostEth} ETH (${UPLOAD_FEE_ETH} ETH fee + ${gasCostEth.substring(0,8)} ETH gas)</p>
+                    <div style="display: flex; gap: 10px; margin-top: 15px; flex-wrap: wrap;">
+                        <a href="https://ipfs.io/ipfs/${ipfsHash}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" style="flex: 1;">View on IPFS Gateway</a>
+                        <button onclick="copyToClipboard('${ipfsHash}')" class="btn" style="flex: 1; background: var(--gray); color: white;">Copy IPFS Hash</button>
+                        <button onclick="showSection('retrieve'); if(ipfsHashInput) ipfsHashInput.value='${ipfsHash}';" class="btn btn-primary" style="flex: 1;">Retrieve Now</button>
                     </div>
-                </div>
-            `).join('');
+                `, 'success');
+
+                // Reset Form
+                resetUploadForm();
+
+            } catch (error) {
+                console.error("Upload failed:", error);
+                let errorDetail = error.message || 'Unknown error';
+                let errorCode = error.code;
+
+                if (error.data?.message) {
+                    errorDetail = error.data.message;
+                } else if (error.reason) {
+                    errorDetail = error.reason;
+                }
+
+                if (errorCode === 4001 || errorDetail.includes("rejected")) {
+                    errorDetail = "Transaction rejected by user in MetaMask.";
+                } else if (errorDetail.includes("insufficient funds")) {
+                    errorDetail = "Insufficient funds for transaction fee + gas.";
+                }
+
+                displayMessage(resultDiv, `
+                    <p>❌ Upload failed!</p>
+                    <p><strong>Error:</strong> ${escapeHtml(errorDetail)}</p>
+                `, 'error');
+            } finally {
+                setLoadingState(uploadButton, uploadLoading, false);
+                if(uploadButtonText) uploadButtonText.textContent = 'Upload to Blockchain';
+            }
         }
+
+         function resetUploadForm() {
+             if (titleInput) titleInput.value = '';
+             if (descriptionInput) descriptionInput.value = '';
+             if (fileInput) fileInput.value = ''; // Clears the file input
+             updateFileName('Choose a file or drag it here'); // Reset file name display
+              // Don't clear resultDiv here, keep the success/error message
+         }
+
+        // --- Core Functionality: Retrieve ---
+        async function handleRetrieve() {
+            console.log("handleRetrieve started");
+            if (!retrieveButton || !ipfsHashInput || !outputDiv) return;
+
+             const ipfsHash = ipfsHashInput.value.trim();
+             if (!ipfsHash) {
+                 displayMessage(outputDiv, `<p>❌ Please enter an IPFS Hash (CID).</p>`, 'error');
+                 return;
+             }
+
+            setLoadingState(retrieveButton, retrieveLoading, true);
+            if(retrieveButtonText) retrieveButtonText.textContent = 'Fetching...';
+            // Basic retrieve just provides links - no async needed here unless verifying hash first
+            displayMessage(outputDiv, `<p><span class="loading"></span> Preparing links for IPFS hash...</p>`, 'info');
+
+
+             try {
+                 // Basic validation (could add more sophisticated CID check)
+                 if (!ipfsHash.startsWith('Qm') && !ipfsHash.startsWith('bafy')) {
+                     // Basic check, not exhaustive
+                     displayMessage(outputDiv, `<p>⚠️ Warning: '${escapeHtml(ipfsHash)}' doesn't look like a standard IPFS CID. Links might not work.</p>`, 'error'); // Use error style for visibility
+                     // Still provide links in case it's valid
+                 }
+
+                 // Provide links immediately
+                 const ipfsGatewayLink = `https://ipfs.io/ipfs/${ipfsHash}`;
+                 // You can add more gateways if desired
+                 // const cloudflareGatewayLink = `https://cloudflare-ipfs.com/ipfs/${ipfsHash}`;
+
+                  displayMessage(outputDiv, `
+                     <h3 style="color: var(--dark); margin-top: 0;">📄 Document Access</h3>
+                     <p><strong>IPFS Hash (CID):</strong> <code style="background:#eee; padding: 2px 5px; border-radius:3px;">${escapeHtml(ipfsHash)}</code></p>
+                     <p>Use the buttons below to view or download the file directly from a public IPFS gateway.</p>
+                     <div style="display: flex; gap: 10px; margin-top: 15px; flex-wrap: wrap;">
+                         <a href="${ipfsGatewayLink}" target="_blank" rel="noopener noreferrer" class="btn btn-primary" style="flex: 1;">View via ipfs.io</a>
+                         <a href="${ipfsGatewayLink}?download=true" download target="_blank" rel="noopener noreferrer" class="btn btn-secondary" style="flex: 1;">Download File</a>
+                         <button onclick="copyToClipboard('${ipfsHash}')" class="btn" style="flex: 1; background: var(--gray); color: white;">Copy IPFS Hash</button>
+                     </div>
+                      <p style="margin-top: 15px; font-size: 0.9em; color: var(--gray);">Note: File availability depends on the IPFS network. If the file isn't found, it might not be pinned or propagated yet.</p>
+                 `, 'success'); // Use success style for the result display
+
+             } catch (err) { // Should be unlikely here unless JS error
+                 console.error("Retrieve error:", err);
+                 displayMessage(outputDiv, `<p>❌ An unexpected error occurred: ${escapeHtml(err.message)}</p>`, 'error');
+             } finally {
+                  setLoadingState(retrieveButton, retrieveLoading, false);
+                  if(retrieveButtonText) retrieveButtonText.textContent = 'Fetch Document';
+             }
+        }
+
+        // --- Core Functionality: History ---
+        async function fetchCIDHistory() {
+             console.log("Fetching CID history from server...");
+             if (!fetchHistoryButton || !cidHistoryDiv) return;
+
+             setLoadingState(fetchHistoryButton, fetchHistoryLoading, true);
+             if(fetchHistoryButtonText) fetchHistoryButtonText.textContent = 'Loading...';
+             displayMessage(cidHistoryDiv, `<p><span class="loading"></span> Loading history from server...</p>`, 'info');
+
+
+             try {
+                 const response = await fetch('http://localhost:5000/cid-history');
+                 if (!response.ok) {
+                     throw new Error(`Server error: ${response.status} ${response.statusText}`);
+                 }
+                 const result = await response.json();
+
+                 if (result.success) {
+                     renderCIDHistory(result.history);
+                 } else {
+                     throw new Error(result.error || 'Failed to fetch history data.');
+                 }
+             } catch (error) {
+                 console.error('Error fetching CID history:', error);
+                 displayMessage(cidHistoryDiv, `<p>❌ Error loading history: ${escapeHtml(error.message)}</p>`, 'error');
+             } finally {
+                  setLoadingState(fetchHistoryButton, fetchHistoryLoading, false);
+                  if(fetchHistoryButtonText) fetchHistoryButtonText.textContent = 'View CID History';
+             }
+        }
+
+         function renderCIDHistory(history) {
+             if (!cidHistoryDiv) return;
+
+             if (!history || history.length === 0) {
+                 cidHistoryDiv.innerHTML = `<p class="empty-history">No upload history found on the server.</p>`;
+                 return;
+             }
+
+             // Create Table
+             let tableHTML = `
+                 <table>
+                     <thead>
+                         <tr>
+                             <th>IPFS Hash (CID)</th>
+                             <th>Timestamp (IST)</th>
+                             <th>Actions</th>
+                         </tr>
+                     </thead>
+                     <tbody>
+             `;
+
+             // Sort history newest first
+             history.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+             // Table Data
+             history.forEach(item => {
+                 // Convert to IST
+                 const date = new Date(item.timestamp);
+                 const options = {
+                     timeZone: 'Asia/Kolkata',
+                     year: 'numeric',
+                     month: '2-digit',
+                     day: '2-digit',
+                     hour: '2-digit',
+                     minute: '2-digit',
+                     hour12: true
+                 };
+                 const formattedTimestamp = date.toLocaleString('en-IN', options) + ' IST';
+
+                 tableHTML += `
+                     <tr>
+                         <td>${escapeHtml(item.cid)}</td>
+                         <td>${escapeHtml(formattedTimestamp)}</td>
+                         <td>
+                             <button onclick="copyToClipboard('${escapeHtml(item.cid)}')" class="copy-cid-btn" title="Copy CID">📋 Copy</button>
+                             <button onclick="showSection('retrieve'); if(ipfsHashInput) ipfsHashInput.value='${escapeHtml(item.cid)}';" class="copy-cid-btn" title="Retrieve this file" style="background: var(--secondary); margin-left: 5px;">🔎 Retrieve</button>
+                         </td>
+                     </tr>
+                 `;
+             });
+
+             tableHTML += `
+                     </tbody>
+                 </table>
+             `;
+
+             cidHistoryDiv.innerHTML = tableHTML;
+         }
+
+
+        // --- Utility Functions ---
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                showTemporaryTooltip('Copied!');
+                console.log('Copied to clipboard:', text);
+            }).catch(err => {
+                 console.error('Failed to copy text: ', err);
+                 alert("Failed to copy. Your browser might not support this feature or permission was denied.");
+            });
+        }
+
+        function showTemporaryTooltip(message) {
+             const tooltip = document.createElement('div');
+             tooltip.textContent = message;
+             Object.assign(tooltip.style, {
+                 position: 'fixed',
+                 top: '20px', // Position at top-center
+                 left: '50%',
+                 transform: 'translateX(-50%)',
+                 padding: '10px 20px',
+                 background: 'rgba(0, 0, 0, 0.8)',
+                 color: 'white',
+                 borderRadius: '5px',
+                 zIndex: '9999',
+                 fontSize: '0.9em',
+                 animation: 'fadeInOut 2s ease forwards' // Animation name and duration
+             });
+
+             // Add keyframe animation style if not already present
+             if (!document.getElementById('fadeInOutKeyframes')) {
+                 const style = document.createElement('style');
+                 style.id = 'fadeInOutKeyframes';
+                 style.textContent = `
+                 @keyframes fadeInOut {
+                     0% { opacity: 0; transform: translate(-50%, -20px); } /* Start above */
+                     20% { opacity: 1; transform: translate(-50%, 0); }   /* Fade in */
+                     80% { opacity: 1; transform: translate(-50%, 0); }   /* Stay visible */
+                     100% { opacity: 0; transform: translate(-50%, -20px); } /* Fade out up */
+                 }`;
+                 document.head.appendChild(style);
+             }
+
+             document.body.appendChild(tooltip);
+
+             // Remove tooltip after animation
+             setTimeout(() => {
+                  if (document.body.contains(tooltip)) {
+                     document.body.removeChild(tooltip);
+                  }
+             }, 2000); // Match animation duration
+         }
+
+        function escapeHtml(unsafe) {
+            if (!unsafe) return '';
+            return unsafe
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
     </script>
 </body>
 
